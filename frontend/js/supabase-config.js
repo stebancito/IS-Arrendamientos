@@ -5,3 +5,16 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 // Exponerlo globalmente para que otros scripts lo usen
 window.supabaseClient = supabaseClient;
+
+// Escape de HTML para todo contenido dinámico que se inyecta con innerHTML.
+// Previene XSS almacenado (p. ej. un inquilino que mete <script> en una incidencia).
+function esc(valor) {
+    if (valor === null || valor === undefined) return '';
+    return String(valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+window.esc = esc;
