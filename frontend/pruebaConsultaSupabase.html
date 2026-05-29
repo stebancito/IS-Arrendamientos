@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h2>Respuesta de la API:</h2>
+    <pre id="output">Cargando...</pre>
+
+    <script>
+        // --- CONFIGURACIÓN - Cámbialo con tus datos ---
+        const SUPABASE_URL = 'https://rsrovjfvjnhhmfnqwsws.supabase.co'; // Tu Project URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzcm92amZ2am5oaG1mbnF3c3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4OTgwODQsImV4cCI6MjA5NTQ3NDA4NH0._54cSp_uBRS7ThaRu9k9NvZ92NIV_Rk7GepNN3HX-cA';                // Tu anon key
+        // -----------------------------------------------
+
+        // 1. Creamos el cliente de Supabase
+        // Es buena práctica evitar conflictos de nombres, usamos "supabaseClient"
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function probarAPI() {
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerText = 'Consultando tabla "usuarios"...';
+
+            // 2. Hacemos una petición a la tabla 'usuarios'
+            // Esto traerá las columnas que le pedimos (select)
+            const { data, error } = await supabaseClient
+                .from('usuarios')
+                .select('usuario_id, correo, rol');
+
+            if (error) {
+                outputDiv.innerText = 'Error: ' + error.message;
+                console.error(error);
+            } else {
+                outputDiv.innerText = JSON.stringify(data, null, 2);
+                console.log('Datos recibidos:', data);
+            }
+        }
+
+        probarAPI();
+    </script>
+</body>
+</html>
