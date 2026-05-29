@@ -2,6 +2,27 @@
 
 **Proyecto académico** – Sistema web para la gestión integral de arrendamientos, desarrollado con frontend vanilla (HTML, CSS, JS) y **Supabase** como backend (base de datos, autenticación, API REST). No requiere backend propio (Node.js/Express). La API de Supabase se consume directamente desde el navegador.
 
+--- 
+## Estrategia de Trabajo en Equipo (Frontend + Supabase)
+* Gestión de Ramas (Git): Nadie debe trabajar en la rama main. Cada desarrollador creará una rama por módulo (ej. feature/modulo-contratos, feature/auth). Solo se hará merge a main cuando el módulo esté funcional y probado.
+
+* Framework de UI Unificado: Para que el sistema sea "funcional y atractivo" rápidamente, utilicen una librería de componentes de interfaz (como Bootstrap 5 o TailwindCSS) cargada vía CDN. Esto evita conflictos de diseño y unifica la apariencia sin perder tiempo escribiendo CSS desde cero.
+
+* Cliente Supabase Centralizado: Mantengan un único archivo supabase-config.js (como ya tienen estructurado) que inicialice la conexión. Todos los demás scripts de JavaScript simplemente llamarán a window.supabaseClient.
+
+* Mockups y Pruebas en SQL Editor: Antes de escribir el código JavaScript para consultas complejas, prueben las sentencias SQL en el panel de Supabase. Si una consulta es muy difícil de hacer en JS, creen una Vista (CREATE VIEW) en Supabase y consúltenla desde el frontend como si fuera una tabla normal.
+---
+## Repartición de trabajo
+
+| Desarrollador | Módulo Asignado | Responsabilidades Principales |
+|---|---|---|
+| Dev 1 | Core, Autenticación y Layout | - Integrar Supabase Auth (Registro, Login, Logout).<br>- Proteger rutas: redirigir si no hay sesión o si el rol no corresponde.<br>- Crear el "Layout" maestro (Barra de navegación lateral/superior) que los demás usarán.<br>- Gestión de la tabla usuarios y perfiles. |
+| Dev 2 | Gestión de Propiedades e Inquilinos | - CRUD de Propiedades (alta, baja, modificación, listar).<br>- Lógica de jerarquía de propiedades (ej. Edificio → Departamentos).<br>- CRUD de Inquilinos (registro y modificación de contactos). |
+| Dev 3 | Gestión de Contratos | - Interfaz para vincular Propiedad + Inquilino en un nuevo contrato.<br>- Validar fechas (fin posterior a inicio) y montos.<br>- Listado de contratos activos e historial.<br>- Lógica para finalizar contratos anticipadamente. |
+| Dev 4 | Motor de Pagos y Simulación | - Generar registros de pagos esperados en `calendario_pagos` al crear un contrato.<br>- Pantalla para registrar recepción de pagos manuales.<br>- Lógica para cambiar estados de pago ("Pendiente", "Pagado", "Vencido").<br>- Historial de pagos por inquilino/propiedad. |
+| Dev 5 | Dashboard Financiero y Evaluaciones | - Integrar Chart.js para mostrar el flujo de efectivo.<br>- Calcular métricas: ingresos totales, pagos pendientes y vencidos.<br>- Generar la calificación del comportamiento financiero del inquilino. |
+| Dev 6 | Incidencias y Notificaciones | - Interfaz del Inquilino para levantar tickets (Incidencias).<br>- Panel del Arrendador para cambiar estados ("Abierta", "En proceso", "Resuelta").<br>- Sistema de notificaciones en tiempo real o al cargar la página (alertas de pagos próximos, cambios en incidencias). |
+
 ---
 
 ## Estructura del proyecto
