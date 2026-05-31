@@ -1,0 +1,262 @@
+// ================================================================
+// components/layout.js  –  Layout Maestro Dinámico
+// ================================================================
+// Inyecta el sidebar + topbar en páginas protegidas.
+//
+// USO EN CADA PÁGINA PROTEGIDA:
+//   1. HTML body debe contener: <div id="page-template">...contenido...</div>
+//   2. En el script de init: await LAYOUT.inyectarLayout({ paginaActiva: 'dashboard' })
+//   3. Luego llamar LAYOUT.setPageTitle('Título visible en topbar')
+// ================================================================
+
+const LAYOUT = (() => {
+
+    // ──────────────────────────────────────────────────────────────
+    // Definición de menús por rol
+    // ──────────────────────────────────────────────────────────────
+    const ICONS = {
+        home:       `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+        building:   `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>`,
+        users:      `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+        document:   `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
+        credit:     `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>`,
+        bell:       `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>`,
+        chart:      `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
+        logout:     `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>`,
+        hamburger:  `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>`,
+        close:      `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
+    };
+
+    const NAV_ARRENDADOR = [
+        { icon: ICONS.home,     label: 'Dashboard',     href: 'dashboard-arrendador.html', id: 'dashboard'    },
+        { icon: ICONS.building, label: 'Propiedades',   href: 'propiedades.html',          id: 'propiedades'  },
+        { icon: ICONS.users,    label: 'Inquilinos',    href: 'inquilinos.html',           id: 'inquilinos'   },
+        { icon: ICONS.document, label: 'Contratos',     href: 'contratos.html',            id: 'contratos'    },
+        { icon: ICONS.credit,   label: 'Pagos',         href: 'pagos.html',                id: 'pagos'        },
+        { icon: ICONS.chart,    label: 'Finanzas',      href: 'finanzas.html',             id: 'finanzas'     },
+        { icon: ICONS.bell,     label: 'Incidencias',   href: 'incidencias.html',          id: 'incidencias'  },
+    ];
+
+    const NAV_INQUILINO = [
+        { icon: ICONS.home,     label: 'Mi Dashboard',  href: 'dashboard-inquilino.html',  id: 'dashboard'    },
+        { icon: ICONS.document, label: 'Mi Contrato',   href: 'mi-contrato.html',          id: 'contratos'    },
+        { icon: ICONS.credit,   label: 'Mis Pagos',     href: 'mis-pagos.html',            id: 'pagos'        },
+        { icon: ICONS.bell,     label: 'Incidencias',   href: 'mis-incidencias.html',      id: 'incidencias'  },
+    ];
+
+    // ──────────────────────────────────────────────────────────────
+    // Generador del HTML del sidebar
+    // ──────────────────────────────────────────────────────────────
+    function _buildSidebar(usuario, navItems, activePage) {
+        const iniciales = (usuario.nombre_completo || 'U')
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase();
+
+        const navHTML = navItems.map(item => {
+            const active = activePage === item.id;
+            return `
+            <a href="${esc(item.href)}"
+               class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                      ${active
+                          ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                          : 'text-blue-100/80 hover:bg-white/10 hover:text-white'}">
+                ${item.icon}
+                <span class="truncate">${esc(item.label)}</span>
+                ${active ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-white/80"></span>' : ''}
+            </a>`;
+        }).join('');
+
+        const rolLabel   = usuario.rol === 'ARRENDADOR' ? 'Arrendador' : 'Inquilino';
+        const navSection = usuario.rol === 'ARRENDADOR' ? 'Administración' : 'Mi cuenta';
+
+        return `
+        <aside id="sidebar"
+               class="fixed left-0 top-0 h-full w-64 z-40 flex flex-col
+                      bg-gradient-to-b from-[#0c1f4a] via-[#0f2557] to-[#1a3680]
+                      transform -translate-x-full lg:translate-x-0
+                      transition-transform duration-300 ease-in-out shadow-2xl">
+
+            <!-- ── Logo ───────────────────────────────────────── -->
+            <div class="flex items-center gap-3 px-5 py-5 border-b border-white/10">
+                <div class="w-9 h-9 bg-blue-400 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-white font-bold text-sm leading-none tracking-tight">Arrendamientos</h1>
+                    <p class="text-blue-300/70 text-xs mt-0.5 truncate">Gestión de propiedades</p>
+                </div>
+                <!-- Botón cerrar en móvil -->
+                <button onclick="LAYOUT.cerrarSidebar()"
+                        class="ml-auto lg:hidden p-1 rounded-lg text-blue-300/70 hover:text-white hover:bg-white/10 transition-colors">
+                    ${ICONS.close}
+                </button>
+            </div>
+
+            <!-- ── Navegación ─────────────────────────────────── -->
+            <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
+                <p class="text-blue-300/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2">
+                    ${esc(navSection)}
+                </p>
+                ${navHTML}
+            </nav>
+
+            <!-- ── Usuario + Logout ───────────────────────────── -->
+            <div class="px-3 py-4 border-t border-white/10 space-y-2">
+                <div class="flex items-center gap-3 px-2 py-2">
+                    <div class="w-8 h-8 rounded-xl bg-blue-400/25 border border-blue-300/30
+                                flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        ${esc(iniciales)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-white text-sm font-semibold truncate leading-none mb-0.5">
+                            ${esc(usuario.nombre_completo)}
+                        </p>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-400/20 text-blue-200 text-[10px] font-medium">
+                            ${esc(rolLabel)}
+                        </span>
+                    </div>
+                </div>
+                <button onclick="AUTH.cerrarSesion()"
+                        class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm
+                               text-red-300/90 hover:text-white hover:bg-red-500/20
+                               transition-all duration-200 font-medium group">
+                    ${ICONS.logout}
+                    <span>Cerrar sesión</span>
+                </button>
+            </div>
+        </aside>`;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Generador del HTML completo del layout
+    // ──────────────────────────────────────────────────────────────
+    function _buildLayout(usuario, navItems, activePage, contenidoPagina, iniciales) {
+        const sidebar  = _buildSidebar(usuario, navItems, activePage);
+        const nombre1  = (usuario.nombre_completo || '').split(' ')[0];
+
+        return `
+        ${sidebar}
+
+        <!-- ── Overlay móvil ─────────────────────────────────── -->
+        <div id="sidebar-overlay"
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 hidden lg:hidden"
+             onclick="LAYOUT.cerrarSidebar()">
+        </div>
+
+        <!-- ── Área principal ────────────────────────────────── -->
+        <div class="lg:ml-64 flex flex-col min-h-screen bg-slate-50/80">
+
+            <!-- Top bar -->
+            <header class="sticky top-0 z-20 flex items-center gap-4 px-4 lg:px-6 h-16
+                           bg-white/90 backdrop-blur-md border-b border-slate-200/70 shadow-sm">
+
+                <!-- Hamburger (solo móvil) -->
+                <button id="hamburger-btn"
+                        onclick="LAYOUT.abrirSidebar()"
+                        class="lg:hidden p-2 -ml-1 rounded-xl text-slate-500 hover:text-slate-700
+                               hover:bg-slate-100 transition-colors">
+                    ${ICONS.hamburger}
+                </button>
+
+                <!-- Título de página -->
+                <h2 id="page-title" class="flex-1 text-slate-800 font-semibold text-sm lg:text-base truncate">
+                    &nbsp;
+                </h2>
+
+                <!-- Badge de usuario -->
+                <div class="hidden sm:flex items-center gap-2.5">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center
+                                text-white text-xs font-bold shadow-sm shadow-blue-600/30">
+                        ${esc(iniciales)}
+                    </div>
+                    <span class="text-slate-600 text-sm font-medium">${esc(nombre1)}</span>
+                </div>
+            </header>
+
+            <!-- Contenido de la página -->
+            <main id="main-content" class="flex-1 p-4 lg:p-6">
+                ${contenidoPagina}
+            </main>
+        </div>`;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // PUBLIC: inyectarLayout({ paginaActiva })
+    // ──────────────────────────────────────────────────────────────
+    async function inyectarLayout(opciones = {}) {
+        // 1. Verificar sesión
+        const session = await window.AUTH.verificarSesion();
+        if (!session) return;
+
+        // 2. Obtener perfil
+        const usuario = await window.AUTH.obtenerUsuarioActual();
+        if (!usuario) {
+            window.location.replace('../index.html');
+            return;
+        }
+
+        // 3. Leer contenido de la página antes de limpiar el DOM
+        const templateEl = document.getElementById('page-template');
+        const contenidoPagina = templateEl ? templateEl.innerHTML : '';
+
+        // 4. Calcular iniciales
+        const iniciales = (usuario.nombre_completo || 'U')
+            .split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+        // 5. Elegir menú según rol
+        const navItems = usuario.rol === 'ARRENDADOR' ? NAV_ARRENDADOR : NAV_INQUILINO;
+
+        // 6. Construir y volcar el layout
+        document.body.className = 'font-sans antialiased';
+        document.body.innerHTML  = _buildLayout(
+            usuario,
+            navItems,
+            opciones.paginaActiva || '',
+            contenidoPagina,
+            iniciales
+        );
+
+        // 7. Bind: Escape cierra el sidebar en móvil
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') cerrarSidebar();
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // PUBLIC: helpers de UI
+    // ──────────────────────────────────────────────────────────────
+    function abrirSidebar() {
+        document.getElementById('sidebar')?.classList.remove('-translate-x-full');
+        document.getElementById('sidebar-overlay')?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarSidebar() {
+        document.getElementById('sidebar')?.classList.add('-translate-x-full');
+        document.getElementById('sidebar-overlay')?.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function setPageTitle(titulo) {
+        const el = document.getElementById('page-title');
+        if (el) el.textContent = titulo;
+    }
+
+    /**
+     * Inyectar contenido en #main-content (útil para módulos que
+     * renderizan dinámicamente).
+     */
+    function setContent(html) {
+        const el = document.getElementById('main-content');
+        if (el) el.innerHTML = html;
+    }
+
+    return { inyectarLayout, abrirSidebar, cerrarSidebar, setPageTitle, setContent };
+})();
+
+window.LAYOUT = LAYOUT;

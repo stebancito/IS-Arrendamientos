@@ -1,38 +1,465 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <title>Arrendamientos App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arrendamientos App – Acceso</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Fuente + estilos propios -->
+    <link rel="stylesheet" href="css/custom.css" />
+
+    <!-- Flag icons CSS (banderas reales) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.0.0/css/flag-icons.min.css">
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] },
+                },
+            },
+        };
+    </script>
+    <style>
+        /* Eliminar scroll horizontal y asegurar altura completa */
+        html, body { margin: 0; padding: 0; height: 100%; overflow-x: hidden; }
+        .tab-panel { transition: opacity 0.2s ease; }
+        .hidden-panel { display: none; }
+        /* Fijar ancho mínimo consistente para ambos formularios */
+        .form-container { width: 100%; max-width: 24rem; margin-left: auto; margin-right: auto; }
+        /* Asegurar que todos los inputs y botones tengan el mismo ancho */
+        .input-brand, .btn-primary, .country-selector-btn, .rol-card {
+            width: 100%;
+        }
+        /* El contenedor del selector de país debe ocupar el ancho completo en móvil */
+        #country-selector-container { width: 8rem; } /* 32 = 8rem */
+        @media (max-width: 640px) {
+            #country-selector-container { width: 7rem; }
+        }
+    </style>
 </head>
 
-<!-- INICIo body -->
-<body class="bg-light">
-    <div class="d-flex justify-content-center align-items-center min-vh-100">
-        <div class="text-center">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-3">Cargando...</p>
+<body class="h-full bg-slate-50 font-sans antialiased">
+
+<div class="h-full flex flex-col lg:flex-row">
+
+    <!-- PANEL IZQUIERDO (decorativo) -->
+    <div class="relative flex-col justify-between overflow-hidden
+                bg-gradient-to-br from-[#0c1f4a] via-[#0f2557] to-[#1a3680]
+                hidden lg:flex lg:w-[55%] xl:w-[58%] p-10 xl:p-14">
+
+        <div class="absolute inset-0 bg-grid-pattern opacity-100 pointer-events-none"></div>
+        <div class="absolute -top-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 -left-24 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <canvas id="buildings-canvas" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 0;"></canvas>
+
+        <div class="relative flex items-center gap-3 anim-fade-in-up">
+            <div class="w-10 h-10 bg-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/40">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+            </div>
+            <span class="text-white font-bold text-xl tracking-tight">Arrendamientos</span>
         </div>
+
+        <div class="relative space-y-6">
+            <div class="anim-fade-in-up anim-delay-1">
+                <p class="text-blue-300/70 text-sm font-semibold uppercase tracking-widest mb-3">Plataforma de gestión</p>
+                <h1 class="text-white font-extrabold text-4xl xl:text-5xl leading-[1.15] tracking-tight">
+                    Controla tus<br/><span class="text-gradient">propiedades</span><br/>con confianza.
+                </h1>
+            </div>
+            <p class="text-blue-200/60 text-base leading-relaxed max-w-md anim-fade-in-up anim-delay-2">
+                Administra contratos, pagos, inquilinos e incidencias desde un solo lugar.
+            </p>
+            <div class="flex flex-wrap gap-2 anim-fade-in-up anim-delay-3">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-blue-100 text-xs font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Contratos digitales
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-blue-100 text-xs font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> Control de pagos
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-blue-100 text-xs font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> Gestión de incidencias
+                </span>
+            </div>
+            <div class="glass-card rounded-2xl p-5 anim-fade-in-up anim-delay-4 anim-float">
+                <p class="text-blue-200/60 text-xs font-medium uppercase tracking-wider mb-3">Resumen del portafolio</p>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center"><p class="text-white font-bold text-2xl">24</p><p class="text-blue-200/60 text-xs mt-0.5">Propiedades</p></div>
+                    <div class="text-center border-x border-white/10"><p class="text-white font-bold text-2xl">18</p><p class="text-blue-200/60 text-xs mt-0.5">Contratos activos</p></div>
+                    <div class="text-center"><p class="text-white font-bold text-2xl">97<span class="text-sm font-medium text-green-400">%</span></p><p class="text-blue-200/60 text-xs mt-0.5">Ocupación</p></div>
+                </div>
+            </div>
+        </div>
+        <p class="relative text-blue-300/30 text-xs">© 2025 Arrendamientos App · Proyecto Académico</p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
-    <script src="js/auth.js"></script>
-    <script>
-        (async () => {
-            const sesion = await Auth.obtenerSesion();
-            if (!sesion) {
-                window.location.replace('pages/login.html');
-                return;
+    <!-- PANEL DERECHO (formularios) con scroll interno y altura fija -->
+    <div class="flex-1 flex flex-col h-full overflow-y-auto bg-white">
+        <div class="flex-1 flex flex-col justify-center px-6 py-6 lg:px-10 xl:px-16">
+            
+            <!-- Logo móvil -->
+            <div class="flex items-center gap-2.5 mb-6 lg:hidden">
+                <div class="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                </div>
+                <span class="text-slate-800 font-bold">Arrendamientos App</span>
+            </div>
+
+            <!-- Contenedor de formularios con ancho fijo máximo -->
+            <div class="form-container">
+                <!-- Pestañas -->
+                <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
+                    <button id="tab-login" onclick="cambiarTab('login')"
+                            class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 bg-white text-blue-700 shadow-sm">
+                        Iniciar sesión
+                    </button>
+                    <button id="tab-register" onclick="cambiarTab('register')"
+                            class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 text-slate-500 hover:text-slate-700">
+                        Crear cuenta
+                    </button>
+                </div>
+
+                <!-- Panel Login -->
+                <div id="panel-login" class="tab-panel space-y-5">
+                    <div>
+                        <h2 class="text-slate-900 font-bold text-2xl">Bienvenido de vuelta</h2>
+                        <p class="text-slate-500 text-sm mt-1">Ingresa tus credenciales para continuar.</p>
+                    </div>
+                    <div id="login-alert" class="hidden"></div>
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-slate-700 mb-1.5">Correo electrónico</label>
+                        <input id="login-email" type="email" autocomplete="email" placeholder="tu@correo.com"
+                               class="input-brand w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 bg-slate-50 focus:bg-white"/>
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
+                        <div class="relative">
+                            <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••"
+                                   class="input-brand w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 bg-slate-50 focus:bg-white"/>
+                            <button type="button" onclick="togglePassword('login-password', this)"
+                                    class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button id="btn-login" onclick="handleLogin()"
+                            class="btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm shadow-md shadow-blue-600/25">
+                        Iniciar sesión
+                    </button>
+                    <p class="text-center text-sm text-slate-500">
+                        ¿No tienes cuenta?
+                        <button onclick="cambiarTab('register')" class="text-blue-600 font-semibold hover:underline ml-1">Regístrate gratis</button>
+                    </p>
+                </div>
+
+                <!-- Panel Registro (mismo ancho garantizado) -->
+                <div id="panel-register" class="tab-panel hidden-panel space-y-4">
+                    <div>
+                        <h2 class="text-slate-900 font-bold text-2xl">Crea tu cuenta</h2>
+                        <p class="text-slate-500 text-sm mt-1">Completa los datos para registrarte.</p>
+                    </div>
+                    <div id="register-alert" class="hidden"></div>
+                    <div>
+                        <label for="reg-nombre" class="block text-sm font-medium text-slate-700 mb-1.5">Nombre completo</label>
+                        <input id="reg-nombre" type="text" autocomplete="name" placeholder="Juan García López"
+                               class="input-brand w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 bg-slate-50 focus:bg-white"/>
+                    </div>
+                    <div>
+                        <label for="reg-email" class="block text-sm font-medium text-slate-700 mb-1.5">Correo electrónico</label>
+                        <input id="reg-email" type="email" autocomplete="email" placeholder="tu@correo.com"
+                               class="input-brand w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 bg-slate-50 focus:bg-white"/>
+                    </div>
+                    <!-- Teléfono con prefijo (ancho consistente) -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Número de teléfono</label>
+                        <div class="flex gap-2">
+                            <div class="relative w-32 flex-shrink-0" id="country-selector-container">
+                                <button type="button" id="country-selector-btn"
+                                        class="country-selector-btn w-full flex items-center gap-1 px-2 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                                    <span class="fi fi-mx"></span><span>+52</span>
+                                    <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="country-dropdown" class="hidden absolute z-20 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-lg max-h-60 overflow-auto">
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+52" data-flag="mx"><span class="fi fi-mx"></span> +52 (México)</div>
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+1" data-flag="us"><span class="fi fi-us"></span> +1 (EE.UU)</div>
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+34" data-flag="es"><span class="fi fi-es"></span> +34 (España)</div>
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+57" data-flag="co"><span class="fi fi-co"></span> +57 (Colombia)</div>
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+54" data-flag="ar"><span class="fi fi-ar"></span> +54 (Argentina)</div>
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+56" data-flag="cl"><span class="fi fi-cl"></span> +56 (Chile)</div>
+                                    <div class="country-option px-3 py-2 hover:bg-slate-50 cursor-pointer" data-prefix="+51" data-flag="pe"><span class="fi fi-pe"></span> +51 (Perú)</div>
+                                </div>
+                            </div>
+                            <input id="reg-telefono" type="tel" placeholder="10 dígitos" maxlength="10"
+                                   class="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white"/>
+                        </div>
+                        <p id="telefono-error" class="text-red-500 text-xs mt-1 hidden">Debe tener exactamente 10 dígitos</p>
+                    </div>
+                    <!-- Contraseña -->
+                    <div>
+                        <label for="reg-password" class="block text-sm font-medium text-slate-700 mb-1.5">Contraseña</label>
+                        <div class="relative">
+                            <input id="reg-password" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres"
+                                   class="input-brand w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 bg-slate-50 focus:bg-white"/>
+                            <button type="button" onclick="togglePassword('reg-password', this)"
+                                    class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="mt-1.5 flex gap-1">
+                            <div class="h-1 flex-1 rounded-full bg-slate-200" id="pw-bar-1"></div>
+                            <div class="h-1 flex-1 rounded-full bg-slate-200" id="pw-bar-2"></div>
+                            <div class="h-1 flex-1 rounded-full bg-slate-200" id="pw-bar-3"></div>
+                        </div>
+                    </div>
+                    <!-- Rol -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de cuenta</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="rol-option relative cursor-pointer">
+                                <input type="radio" name="rol" value="ARRENDADOR" class="sr-only" checked/>
+                                <div class="rol-card flex flex-col items-center gap-2 p-3.5 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 transition-all">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                    </svg>
+                                    <span class="text-xs font-semibold text-center">Arrendador</span>
+                                </div>
+                            </label>
+                            <label class="rol-option relative cursor-pointer">
+                                <input type="radio" name="rol" value="INQUILINO" class="sr-only"/>
+                                <div class="rol-card flex flex-col items-center gap-2 p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-500 transition-all">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <span class="text-xs font-semibold text-center">Inquilino</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <button id="btn-register" onclick="handleRegistro()"
+                            class="btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm shadow-md shadow-blue-600/25">
+                        Crear cuenta
+                    </button>
+                    <p class="text-center text-sm text-slate-500">
+                        ¿Ya tienes cuenta?
+                        <button onclick="cambiarTab('login')" class="text-blue-600 font-semibold hover:underline ml-1">Inicia sesión</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+
+<script>
+// ================================================================
+// Funciones globales para login/registro
+// ================================================================
+
+(async () => {
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    if (session) {
+        const cached = sessionStorage.getItem('ua_perfil');
+        const perfil = cached ? JSON.parse(cached) : null;
+        if (perfil?.rol === 'ARRENDADOR') window.location.replace('pages/dashboard-arrendador.html');
+        else if (perfil?.rol === 'INQUILINO') window.location.replace('pages/dashboard-inquilino.html');
+    }
+})();
+
+function cambiarTab(tab) {
+    const panelLogin = document.getElementById('panel-login');
+    const panelRegister = document.getElementById('panel-register');
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const activeClasses = ['bg-white', 'text-blue-700', 'shadow-sm'];
+    const inactiveClasses = ['text-slate-500', 'hover:text-slate-700'];
+
+    if (tab === 'login') {
+        panelLogin.classList.remove('hidden-panel');
+        panelRegister.classList.add('hidden-panel');
+        tabLogin.classList.add(...activeClasses);
+        tabLogin.classList.remove(...inactiveClasses);
+        tabRegister.classList.remove(...activeClasses);
+        tabRegister.classList.add(...inactiveClasses);
+    } else {
+        panelRegister.classList.remove('hidden-panel');
+        panelLogin.classList.add('hidden-panel');
+        tabRegister.classList.add(...activeClasses);
+        tabRegister.classList.remove(...inactiveClasses);
+        tabLogin.classList.remove(...activeClasses);
+        tabLogin.classList.add(...inactiveClasses);
+    }
+}
+
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    const svg = btn.querySelector('svg');
+    if (svg) {
+        svg.innerHTML = isText
+            ? `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`
+            : `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
+    }
+}
+
+// Indicador de fuerza
+document.getElementById('reg-password')?.addEventListener('input', function () {
+    const pw = this.value;
+    const bars = [document.getElementById('pw-bar-1'), document.getElementById('pw-bar-2'), document.getElementById('pw-bar-3')];
+    const score = [pw.length >= 8, /[A-Z]/.test(pw) || /\d/.test(pw), /[^a-zA-Z0-9]/.test(pw)].filter(Boolean).length;
+    const colors = ['', 'bg-red-400', 'bg-yellow-400', 'bg-green-400'];
+    bars.forEach((b, i) => { if (b) b.className = 'h-1 flex-1 rounded-full transition-colors ' + (i < score ? colors[score] : 'bg-slate-200'); });
+});
+
+// Rol visual
+document.querySelectorAll('.rol-option input[type=radio]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        document.querySelectorAll('.rol-option').forEach(opt => {
+            const card = opt.querySelector('.rol-card');
+            const r = opt.querySelector('input');
+            if (r.checked) {
+                card.className = card.className.replace('border-slate-200 bg-white text-slate-500', 'border-blue-500 bg-blue-50 text-blue-700');
+            } else {
+                card.className = card.className.replace('border-blue-500 bg-blue-50 text-blue-700', 'border-slate-200 bg-white text-slate-500');
             }
-            const usuario = await Auth.obtenerUsuarioActual();
-            if (!usuario) {
-                window.location.replace('pages/login.html');
-                return;
+        });
+    });
+});
+
+// Handle Login
+async function handleLogin() {
+    const correo = document.getElementById('login-email').value.trim();
+    const contrasena = document.getElementById('login-password').value;
+    const btn = document.getElementById('btn-login');
+    if (!correo || !contrasena) { AUTH.mostrarAlerta('login-alert', 'Completa todos los campos.', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { AUTH.mostrarAlerta('login-alert', 'Correo inválido.', 'error'); return; }
+    await AUTH.iniciarSesion(correo, contrasena, btn);
+}
+
+// Handle Registro
+async function handleRegistro() {
+    const nombre = document.getElementById('reg-nombre').value.trim();
+    const correo = document.getElementById('reg-email').value.trim();
+    const contrasena = document.getElementById('reg-password').value;
+    const rol = document.querySelector('input[name="rol"]:checked')?.value || 'INQUILINO';
+    const prefijo = document.getElementById('country-selector-btn')?.getAttribute('data-prefix') || '+52';
+    const telefono = document.getElementById('reg-telefono').value.trim();
+    const btn = document.getElementById('btn-register');
+
+    if (!nombre || !correo || !contrasena || !telefono) { AUTH.mostrarAlerta('register-alert', 'Completa todos los campos.', 'error'); return; }
+    if (nombre.length < 3) { AUTH.mostrarAlerta('register-alert', 'Nombre mínimo 3 caracteres.', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { AUTH.mostrarAlerta('register-alert', 'Correo inválido.', 'error'); return; }
+    if (contrasena.length < 8) { AUTH.mostrarAlerta('register-alert', 'Contraseña mínimo 8 caracteres.', 'error'); return; }
+    if (!/^\d{10}$/.test(telefono)) {
+        const errSpan = document.getElementById('telefono-error');
+        if (errSpan) { errSpan.classList.remove('hidden'); setTimeout(() => errSpan.classList.add('hidden'), 3000); }
+        return;
+    }
+    const telefonoCompleto = prefijo + telefono;
+    await AUTH.registrarUsuario(nombre, correo, contrasena, rol, telefonoCompleto, btn);
+}
+
+// Selector de país
+(function initCountrySelector() {
+    const btn = document.getElementById('country-selector-btn');
+    const dropdown = document.getElementById('country-dropdown');
+    if (!btn || !dropdown) return;
+    const options = document.querySelectorAll('.country-option');
+    btn.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden'); });
+    document.addEventListener('click', () => dropdown.classList.add('hidden'));
+    options.forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const prefix = opt.getAttribute('data-prefix');
+            const flag = opt.getAttribute('data-flag');
+            btn.innerHTML = `<span class="fi fi-${flag}"></span><span>${prefix}</span><svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+            btn.setAttribute('data-prefix', prefix);
+            dropdown.classList.add('hidden');
+        });
+    });
+    btn.setAttribute('data-prefix', '+52');
+})();
+
+// Dibujar edificios en canvas
+function drawBuildings() {
+    const canvas = document.getElementById('buildings-canvas');
+    if (!canvas) return;
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const colors = ['#0a1a3a', '#0d1f47', '#122a5a', '#1a3770', '#0f2557'];
+    const windowColor = '#2a4b8c', lightColor = '#ffdd88';
+    const buildingCount = Math.max(8, Math.floor(w / 80));
+    const buildingWidth = w / buildingCount * 0.7;
+    const gap = (w / buildingCount) * 0.3;
+    for (let i = 0; i < buildingCount; i++) {
+        const x = i * (buildingWidth + gap) + gap/2;
+        if (x + buildingWidth > w) continue;
+        let heightPercent;
+        const leftThreshold = buildingCount * 0.4;
+        if (i < leftThreshold) heightPercent = 0.2 + Math.random() * 0.2;
+        else heightPercent = 0.4 + Math.random() * 0.4;
+        const buildingHeight = h * heightPercent;
+        const yBase = h - 50, y = yBase - buildingHeight;
+        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        ctx.fillRect(x, y, buildingWidth, buildingHeight);
+        const rows = Math.floor(buildingHeight / 25), cols = Math.floor(buildingWidth / 20);
+        const windowW = buildingWidth / cols * 0.6, windowH = 12;
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const isLit = Math.random() > 0.7;
+                ctx.fillStyle = isLit ? lightColor : windowColor;
+                const wx = x + col * (buildingWidth / cols) + (buildingWidth / cols - windowW) / 2;
+                const wy = y + row * 25 + 5;
+                if (wy + windowH < yBase - 5) ctx.fillRect(wx, wy, windowW, windowH);
             }
-            Auth.redirigirSegunRol(usuario);
-        })();
-    </script>
+        }
+        ctx.fillStyle = '#0a1a3a';
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + buildingWidth/2, y - 12); ctx.lineTo(x + buildingWidth, y); ctx.fill();
+    }
+    ctx.fillStyle = '#0a142a';
+    ctx.fillRect(0, h - 50, w, 50);
+    ctx.strokeStyle = '#2a4b8c';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, h - 50); ctx.lineTo(w, h - 50); ctx.stroke();
+    const gradient = ctx.createLinearGradient(0, 0, w * 0.5, 0);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0.4)'); gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+    ctx.fillStyle = gradient; ctx.fillRect(0, 0, w, h);
+}
+window.addEventListener('resize', () => drawBuildings());
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', drawBuildings);
+else drawBuildings();
+
+// Enter key
+document.getElementById('login-password')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('reg-password')?.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegistro(); });
+</script>
+
 </body>
 </html>
