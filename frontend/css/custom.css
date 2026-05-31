@@ -1,0 +1,150 @@
+/* ================================================================
+   custom.css  –  Estilos complementarios a Tailwind CDN
+   ================================================================
+   No sobreescribir clases de Tailwind aquí.
+   Solo agregar efectos, animaciones y utilidades que Tailwind
+   no puede expresar directamente vía CDN.
+   ================================================================ */
+
+/* ── Fuente principal ──────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Variables de la paleta corporativa ───────────────────────── */
+:root {
+    --color-navy-900: #0c1f4a;
+    --color-navy-800: #0f2557;
+    --color-navy-700: #1a3680;
+    --color-brand:    #3b82f6;
+    --color-brand-dk: #2563eb;
+    --sidebar-width:  16rem;          /* 256px = w-64 */
+    --topbar-height:  4rem;           /* 64px  = h-16 */
+    --transition:     cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Reset / base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar personalizado (sidebar) ─────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar        { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb  { background: rgba(255,255,255,.15); border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.30); }
+
+/* ── Patrón de rejilla para fondos decorativos ────────────────── */
+.bg-grid-pattern {
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+/* ── Textura de puntos ─────────────────────────────────────────── */
+.bg-dot-pattern {
+    background-image: radial-gradient(rgba(255,255,255,.12) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* ── Glassmorphism card ────────────────────────────────────────── */
+.glass-card {
+    background: rgba(255,255,255,.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.18);
+}
+
+/* ── Animación de aparición escalonada ─────────────────────────── */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+.anim-fade-in-up { animation: fadeInUp .45s var(--transition) both; }
+
+.anim-delay-1 { animation-delay: .05s; }
+.anim-delay-2 { animation-delay: .10s; }
+.anim-delay-3 { animation-delay: .15s; }
+.anim-delay-4 { animation-delay: .20s; }
+
+/* ── Flotación suave (panel izquierdo del login) ───────────────── */
+@keyframes float {
+    0%, 100% { transform: translateY(0px);   }
+    50%       { transform: translateY(-8px);  }
+}
+.anim-float { animation: float 5s ease-in-out infinite; }
+
+/* ── Spinner de carga ──────────────────────────────────────────── */
+@keyframes spin-btn {
+    to { transform: rotate(360deg); }
+}
+.btn-spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin-btn .7s linear infinite;
+}
+
+/* ── Transición suave de pestañas (login) ──────────────────────── */
+.tab-panel { transition: opacity .25s var(--transition), transform .25s var(--transition); }
+.tab-panel.hidden-panel {
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+}
+
+/* ── Input focus ring de marca ─────────────────────────────────── */
+.input-brand {
+    transition: border-color .2s, box-shadow .2s;
+}
+.input-brand:focus {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+}
+
+/* ── Botón primario hover lift ─────────────────────────────────── */
+.btn-primary {
+    transition: background-color .2s, transform .15s, box-shadow .2s;
+}
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(37,99,235,.40);
+}
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+.btn-primary:disabled {
+    opacity: .75;
+    cursor: not-allowed;
+}
+
+/* ── Stat card hover lift ──────────────────────────────────────── */
+.stat-card {
+    transition: transform .2s var(--transition), box-shadow .2s var(--transition);
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(15,37,87,.18);
+}
+
+/* ── Sidebar item active glow ──────────────────────────────────── */
+.sidebar-item-active {
+    box-shadow: 0 4px 16px rgba(59,130,246,.30);
+}
+
+/* ── Gradient text ─────────────────────────────────────────────── */
+.text-gradient {
+    background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 50%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

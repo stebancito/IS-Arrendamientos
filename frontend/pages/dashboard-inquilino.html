@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Dashboard – Inquilino | Arrendamientos App</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+
+<body class="font-sans antialiased bg-slate-50">
+
+    <!-- ── Loader inicial ──────────────────────────────────────── -->
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando tu información…</p>
+    </div>
+
+    <!-- ── Contenido de la página ─────────────────────────────── -->
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera de bienvenida -->
+        <div class="mb-6 anim-fade-in-up">
+            <h3 class="text-slate-900 font-bold text-xl" id="welcome-msg">Bienvenido</h3>
+            <p class="text-slate-500 text-sm mt-0.5">Revisa el estado de tu contrato y pagos.</p>
+        </div>
+
+        <!-- ── Banner de contrato activo ────────────────────── -->
+        <div id="contrato-banner"
+             class="anim-fade-in-up anim-delay-1 mb-6 rounded-2xl overflow-hidden
+                    bg-gradient-to-r from-[#0f2557] to-[#1d4ed8] p-5 text-white shadow-xl shadow-blue-900/20">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider mb-1">Contrato activo</p>
+                    <p id="contrato-propiedad" class="font-bold text-lg leading-tight">Cargando…</p>
+                    <p id="contrato-fechas"    class="text-blue-200/70 text-sm mt-1">—</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-blue-200/70 text-xs mb-0.5">Renta mensual</p>
+                    <p id="contrato-monto" class="font-extrabold text-2xl">—</p>
+                </div>
+            </div>
+            <!-- Barra de progreso del contrato -->
+            <div class="mt-4">
+                <div class="flex justify-between text-xs text-blue-200/60 mb-1.5">
+                    <span>Progreso del contrato</span>
+                    <span id="contrato-progreso-pct">0%</span>
+                </div>
+                <div class="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                    <div id="barra-progreso" class="h-full bg-blue-300 rounded-full transition-all duration-700" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Tarjetas de pagos ─────────────────────────────── -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1 text-center">
+                <div class="w-9 h-9 rounded-xl bg-yellow-50 flex items-center justify-center mx-auto mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <p id="pago-pendientes" class="text-slate-900 font-bold text-2xl">—</p>
+                <p class="text-slate-400 text-xs mt-0.5">Pendientes</p>
+            </div>
+
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2 text-center">
+                <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center mx-auto mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <p id="pago-pagados" class="text-slate-900 font-bold text-2xl">—</p>
+                <p class="text-slate-400 text-xs mt-0.5">Pagados</p>
+            </div>
+
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3 text-center">
+                <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <p id="pago-vencidos" class="text-slate-900 font-bold text-2xl">—</p>
+                <p class="text-slate-400 text-xs mt-0.5">Vencidos</p>
+            </div>
+        </div>
+
+        <!-- ── Próximos pagos ────────────────────────────────── -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h4 class="text-slate-800 font-semibold text-sm">Próximos pagos</h4>
+                <a href="mis-pagos.html" class="text-blue-600 text-xs font-medium hover:underline">Ver historial</a>
+            </div>
+            <div id="proximos-pagos">
+                <div class="flex items-center justify-center py-10">
+                    <div class="text-center">
+                        <div class="w-8 h-8 border-2 border-slate-200 border-t-blue-500 rounded-full
+                                    animate-spin mx-auto mb-2" style="border-width:2px"></div>
+                        <p class="text-slate-400 text-xs">Cargando pagos…</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Acciones rápidas ──────────────────────────────── -->
+        <div class="grid grid-cols-2 gap-3">
+            <a href="mis-incidencias.html"
+               class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100
+                      hover:border-orange-200 hover:bg-orange-50/40 transition-all duration-200 shadow-sm group">
+                <div class="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 transition-colors
+                            flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-slate-800 text-sm font-semibold">Reportar incidencia</p>
+                    <p class="text-slate-400 text-xs">Envía un reporte</p>
+                </div>
+            </a>
+
+            <a href="mi-contrato.html"
+               class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100
+                      hover:border-blue-200 hover:bg-blue-50/40 transition-all duration-200 shadow-sm group">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors
+                            flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-slate-800 text-sm font-semibold">Ver mi contrato</p>
+                    <p class="text-slate-400 text-xs">Detalles y fechas</p>
+                </div>
+            </a>
+        </div>
+
+    </div>
+    <!-- /page-template -->
+
+    <!-- ── Scripts ──────────────────────────────────────────────── -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+
+    <script>
+    /* ── Inicialización del dashboard inquilino ──────────────────── */
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'dashboard' });
+            LAYOUT.setPageTitle('Mi Dashboard');
+
+            // Ocultar loader
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            const nombre1  = (usuario?.nombre_completo || '').split(' ')[0];
+
+            // Saludo
+            const welcomeEl = document.getElementById('welcome-msg');
+            if (welcomeEl && nombre1) welcomeEl.textContent = `Hola, ${nombre1}`;
+
+            // Cargar datos del inquilino
+            await cargarDashboardInquilino(usuario);
+
+        } catch (err) {
+            console.error('[DASHBOARD-INQUILINO] Error de init:', err);
+        }
+    })();
+
+    async function cargarDashboardInquilino(usuario) {
+        if (!usuario) return;
+
+        // Obtener registro inquilino
+        const { data: inquilino } = await window.supabaseClient
+            .from('inquilinos')
+            .select('inquilino_id')
+            .eq('usuario_id', usuario.usuario_id)
+            .maybeSingle();
+        if (!inquilino) {
+            _sinContrato();
+            return;
+        }
+
+        // Obtener contrato activo
+        const { data: contrato } = await window.supabaseClient
+            .from('contratos')
+            .select(`
+                contrato_id, fecha_inicio, fecha_fin, monto_renta, frecuencia_pago, estado,
+                propiedades ( nombre, direccion )
+            `)
+            .eq('inquilino_id', inquilino.inquilino_id)
+            .eq('estado', 'ACTIVO')
+            .single();
+
+        if (!contrato) {
+            _sinContrato();
+            return;
+        }
+
+        // Actualizar banner de contrato
+        const prop = contrato.propiedades;
+        document.getElementById('contrato-propiedad').textContent =
+            prop ? `${prop.nombre} — ${prop.direccion}` : 'Propiedad sin nombre';
+
+        const inicio = new Date(contrato.fecha_inicio);
+        const fin    = new Date(contrato.fecha_fin);
+        document.getElementById('contrato-fechas').textContent =
+            `${inicio.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })} — ` +
+            `${fin.toLocaleDateString(  'es-MX', { day:'2-digit', month:'short', year:'numeric' })}`;
+
+        document.getElementById('contrato-monto').textContent =
+            new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+                .format(contrato.monto_renta);
+
+        // Progreso del contrato
+        const total   = fin - inicio;
+        const elapsed = Math.min(Date.now() - inicio, total);
+        const pct     = total > 0 ? Math.round((elapsed / total) * 100) : 0;
+        document.getElementById('contrato-progreso-pct').textContent = pct + '%';
+        requestAnimationFrame(() => {
+            document.getElementById('barra-progreso').style.width = pct + '%';
+        });
+
+        // Pagos
+        const { data: pagos } = await window.supabaseClient
+            .from('calendario_pagos')
+            .select('calendario_id, fecha_limite, monto_esperado, estado')
+            .eq('contrato_id', contrato.contrato_id)
+            .order('fecha_limite', { ascending: true });
+
+        const pendientes = (pagos || []).filter(p => p.estado === 'PENDIENTE').length;
+        const pagados    = (pagos || []).filter(p => p.estado === 'PAGADO').length;
+        const vencidos   = (pagos || []).filter(p => p.estado === 'VENCIDO').length;
+
+        document.getElementById('pago-pendientes').textContent = pendientes;
+        document.getElementById('pago-pagados').textContent    = pagados;
+        document.getElementById('pago-vencidos').textContent   = vencidos;
+
+        // Próximos pagos (los 3 próximos pendientes)
+        const proximos = (pagos || [])
+            .filter(p => p.estado === 'PENDIENTE' || p.estado === 'VENCIDO')
+            .slice(0, 3);
+
+        const contenedor = document.getElementById('proximos-pagos');
+        if (!proximos.length) {
+            contenedor.innerHTML = `<div class="py-8 text-center"><p class="text-slate-400 text-sm">¡Sin pagos pendientes! 🎉</p></div>`;
+            return;
+        }
+
+        contenedor.innerHTML = proximos.map(p => {
+            const fecha   = new Date(p.fecha_limite);
+            const hoy     = new Date();
+            const diasRest = Math.ceil((fecha - hoy) / 86400000);
+            const esVencido = p.estado === 'VENCIDO';
+            const montoFmt  = new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN' }).format(p.monto_esperado);
+            return `
+            <div class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                            ${esVencido ? 'bg-red-100' : 'bg-yellow-50'}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 ${esVencido ? 'text-red-500' : 'text-yellow-500'}"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-slate-800 text-sm font-semibold">${esc(montoFmt)}</p>
+                    <p class="text-slate-400 text-xs">
+                        Vence: ${fecha.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}
+                    </p>
+                </div>
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0
+                             ${esVencido ? 'bg-red-100 text-red-700' : diasRest <= 7 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'}">
+                    ${esVencido ? 'Vencido' : diasRest <= 0 ? 'Hoy' : `${diasRest}d`}
+                </span>
+            </div>`;
+        }).join('');
+    }
+
+    function _sinContrato() {
+        const banner = document.getElementById('contrato-banner');
+        if (banner) {
+            banner.innerHTML = `
+                <div class="text-center py-2">
+                    <p class="text-blue-100 font-medium">Sin contrato activo</p>
+                    <p class="text-blue-200/60 text-sm mt-1">Contacta a tu arrendador para vincularte.</p>
+                </div>`;
+        }
+        ['pago-pendientes','pago-pagados','pago-vencidos'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '0';
+        });
+        const pp = document.getElementById('proximos-pagos');
+        if (pp) pp.innerHTML = `<div class="py-8 text-center"><p class="text-slate-400 text-sm">No tienes pagos registrados.</p></div>`;
+    }
+    </script>
+
+</body>
+</html>
