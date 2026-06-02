@@ -27,6 +27,7 @@ const INQUILINOS_EDIFICIO = (() => {
     // ──────────────────────────────────────────────────────────────
     async function init(usuario) {
         _usuario = usuario;
+        _asegurarModalHistorial();
 
         // Soportar ?edificioId= en URL para filtrar directamente
         const params = new URLSearchParams(window.location.search);
@@ -353,5 +354,38 @@ const INQUILINOS_EDIFICIO = (() => {
 
     return { init, cerrarModal };
 })();
+// ──────────────────────────────────────────────────────────────
+// Crear modal de historial si no existe en el DOM
+// ──────────────────────────────────────────────────────────────
+function _asegurarModalHistorial() {
+    if (document.getElementById('modal-historial')) return;
+
+    const modalHTML = `
+    <div id="modal-historial"
+         class="fixed inset-0 z-40 hidden items-end sm:items-center justify-center
+                bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+                <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 014-4h4M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 id="mod-hist-titulo" class="text-slate-900 font-bold text-base truncate">Historial</h4>
+                    <p id="mod-hist-prop" class="text-slate-500 text-xs truncate">—</p>
+                </div>
+                <button onclick="INQUILINOS_EDIFICIO.cerrarModal()" class="p-2 rounded-xl text-slate-400 hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="mod-hist-body" class="flex-1 overflow-y-auto p-5"></div>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
 
 window.INQUILINOS_EDIFICIO = INQUILINOS_EDIFICIO;
