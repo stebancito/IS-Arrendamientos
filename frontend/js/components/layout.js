@@ -30,7 +30,7 @@ const LAYOUT = (() => {
     const NAV_ARRENDADOR = [
         { icon: ICONS.home,     label: 'Dashboard',     href: 'dashboard-arrendador.html', id: 'dashboard'    },
         { icon: ICONS.building, label: 'Propiedades',   href: 'propiedades.html',          id: 'propiedades'  },
-        { icon: ICONS.users,    label: 'Inquilinos',    href: 'inquilinos.html',           id: 'inquilinos'   },
+        { icon: ICONS.users,    label: 'Inquilinos',    href: 'inquilinos-edificio.html',  id: 'inquilinos'   },
         { icon: ICONS.document, label: 'Contratos',     href: 'contratos.html',            id: 'contratos'    },
         { icon: ICONS.credit,   label: 'Pagos',         href: 'pagos.html',                id: 'pagos'        },
         { icon: ICONS.chart,    label: 'Finanzas',      href: 'finanzas.html',             id: 'finanzas'     },
