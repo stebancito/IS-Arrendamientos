@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nuevo Contrato | Arrendamientos App</title>
+
+    <!-- Tailwind + estilos propios -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+
+    <!-- FontAwesome (iconografía consistente con la skin del módulo) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <!-- Loader inicial -->
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Preparando formulario…</p>
+    </div>
+
+    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Nuevo contrato de arrendamiento</h3>
+                <p class="text-slate-500 text-sm mt-0.5">
+                    Vincula a un inquilino con una propiedad. El contrato quedará en estado <span class="font-semibold text-blue-700">Pendiente de aceptación</span> hasta que el inquilino lo apruebe.
+                </p>
+            </div>
+            <a href="gestion-contratos.html"
+               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
+                      bg-white border border-slate-200 hover:bg-slate-100
+                      transition text-sm font-medium self-start sm:self-auto">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+                Volver a contratos
+            </a>
+        </div>
+
+        <!-- Alerta superior -->
+        <div id="form-alert" class="hidden"></div>
+
+        <!-- ╔══════════ GRID: formulario + preview ══════════╗ -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            <!-- ╔ Formulario ╗ -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 anim-fade-in-up anim-delay-1">
+
+                <!-- ── Paso 1: Inquilino ── -->
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Inquilino</h4>
+                    </div>
+                    <p class="text-slate-500 text-xs mb-3 ml-8">
+                        Busca un inquilino ya registrado por su correo electrónico o número de teléfono.
+                    </p>
+
+                    <div class="ml-8">
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input id="busqueda-inquilino" type="text"
+                                   placeholder="usuario@correo.com  ó  5512345678"
+                                   class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                        </div>
+
+                        <!-- Resultados de búsqueda -->
+                        <div id="resultados-busqueda" class="hidden mt-2 border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+                            <!-- Render dinámico -->
+                        </div>
+
+                        <!-- Inquilino seleccionado -->
+                        <div id="inquilino-seleccionado" class="hidden mt-3 p-3.5 rounded-xl bg-blue-50 border border-blue-100">
+                            <div class="flex items-center gap-3">
+                                <div id="inq-sel-avatar" class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm">U</div>
+                                <div class="flex-1 min-w-0">
+                                    <p id="inq-sel-nombre" class="text-slate-900 font-bold text-sm truncate">—</p>
+                                    <p id="inq-sel-correo" class="text-slate-500 text-xs truncate">—</p>
+                                </div>
+                                <button type="button" id="btn-cambiar-inquilino"
+                                        class="px-2.5 py-1.5 rounded-lg text-blue-700 hover:bg-blue-100 text-xs font-semibold">
+                                    Cambiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Paso 2: Propiedad ── -->
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Propiedad a vincular</h4>
+                    </div>
+                    <p class="text-slate-500 text-xs mb-3 ml-8">
+                        Solo se listan unidades disponibles (sin contrato activo o pendiente).
+                    </p>
+
+                    <div class="ml-8">
+                        <select id="propiedad-id"
+                                class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                            <option value="">— Selecciona una propiedad —</option>
+                        </select>
+                        <p id="prop-status" class="hidden mt-2 text-xs"></p>
+                    </div>
+                </section>
+
+                <!-- ── Paso 3: Condiciones financieras ── -->
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Condiciones del contrato</h4>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-0 sm:ml-8">
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Fecha de inicio *</label>
+                            <input id="fecha-inicio" type="date"
+                                   class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Fecha de término *</label>
+                            <input id="fecha-fin" type="date"
+                                   class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                            <p id="fechas-error" class="hidden text-red-500 text-xs mt-1">
+                                La fecha de término debe ser posterior a la de inicio.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Monto de renta *</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                                <input id="monto-renta" type="number" min="1" step="0.01"
+                                       placeholder="8500.00"
+                                       class="input-brand w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                            </div>
+                            <p id="monto-error" class="hidden text-red-500 text-xs mt-1">
+                                El monto debe ser mayor a cero.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Frecuencia de pago *</label>
+                            <select id="frecuencia-pago"
+                                    class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                                <option value="MENSUAL">Mensual</option>
+                                <option value="QUINCENAL">Quincenal</option>
+                                <option value="SEMANAL">Semanal</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Paso 4: Beneficios y observaciones ── -->
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">4</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Beneficios y observaciones</h4>
+                    </div>
+
+                    <div class="ml-0 sm:ml-8 space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Beneficios incluidos</label>
+                            <textarea id="beneficios" rows="2" maxlength="500"
+                                      placeholder="Ej. Agua, luz, estacionamiento, mantenimiento de áreas comunes…"
+                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Observaciones</label>
+                            <textarea id="observaciones" rows="3" maxlength="1000"
+                                      placeholder="Cláusulas adicionales, condiciones especiales…"
+                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Botones -->
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-4 border-t border-slate-100">
+                    <a href="gestion-contratos.html"
+                       class="px-5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-medium text-center">
+                        Cancelar
+                    </a>
+                    <button id="btn-crear" type="button"
+                            class="btn-primary px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm
+                                   shadow-md shadow-blue-600/25">
+                        <i class="fa-solid fa-file-circle-plus mr-1.5"></i>
+                        Enviar contrato al inquilino
+                    </button>
+                </div>
+            </div>
+
+            <!-- ╔ Preview lateral ╗ -->
+            <aside class="lg:col-span-1 anim-fade-in-up anim-delay-2">
+                <div class="sticky top-20 space-y-4">
+
+                    <div class="bg-gradient-to-br from-[#0c1f4a] via-[#0f2557] to-[#1a3680] rounded-2xl p-5 text-white shadow-xl">
+                        <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider mb-2">
+                            <i class="fa-solid fa-file-contract mr-1"></i> Vista previa
+                        </p>
+
+                        <p id="pv-inquilino" class="font-bold text-base truncate">Sin inquilino seleccionado</p>
+                        <p id="pv-propiedad" class="text-blue-200/80 text-sm mt-1 truncate">Sin propiedad asignada</p>
+
+                        <div class="mt-4 pt-4 border-t border-white/10 space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-blue-200/70">Inicio</span>
+                                <span id="pv-inicio" class="font-semibold">—</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-blue-200/70">Término</span>
+                                <span id="pv-fin" class="font-semibold">—</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-blue-200/70">Duración</span>
+                                <span id="pv-duracion" class="font-semibold">—</span>
+                            </div>
+                            <div class="flex justify-between text-xs">
+                                <span class="text-blue-200/70">Renta</span>
+                                <span id="pv-monto" class="font-bold text-lg text-green-300">—</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-200 text-[11px] font-bold uppercase tracking-wider">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            Pendiente de aceptación
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                        <p class="text-blue-900 text-xs font-bold mb-2">
+                            <i class="fa-solid fa-lightbulb mr-1"></i> Reglas que se aplican
+                        </p>
+                        <ul class="text-slate-600 text-xs space-y-1.5 leading-relaxed">
+                            <li>• La fecha de término debe ser posterior a la de inicio (RN-05).</li>
+                            <li>• El monto debe ser mayor a cero (RN-06).</li>
+                            <li>• La propiedad no puede tener otro contrato activo o pendiente (RN-03, RN-10).</li>
+                            <li>• El inquilino podrá aceptar o rechazar el contrato.</li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <!-- /page-template -->
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/nuevo-contrato.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'contratos' });
+            LAYOUT.setPageTitle('Nuevo contrato');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+
+            NUEVO_CONTRATO.init(usuario);
+        } catch (err) {
+            console.error('[NUEVO-CONTRATO] Error de init:', err);
+        }
+    })();
+    </script>
+</body>
+</html>

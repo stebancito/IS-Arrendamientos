@@ -164,3 +164,20 @@ body {
 .animate-slide-up {
     animation: slideUp 0.3s ease-out forwards;
 }
+
+/* Animación para fade in/out del carrusel */
+.carousel-card {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+.carousel-card-enter {
+    opacity: 0;
+    transform: translateX(10px);
+}
+.carousel-card-active {
+    opacity: 1;
+    transform: translateX(0);
+}
+.carousel-card-exit {
+    opacity: 0;
+    transform: translateX(-10px);
+}
