@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Agregar Propiedad | Arrendamientos App</title>
 
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/custom.css" />
-
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -31,11 +28,11 @@
     <!-- ── Contenido (extraído por layout.js) ─────────────────── -->
     <div id="page-template" class="hidden">
 
-        <!-- Cabecera de la pantalla -->
+        <!-- Cabecera (textos cambian según modo crear/editar) -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
             <div>
-                <h3 class="text-slate-900 font-bold text-xl">Agregar nueva propiedad</h3>
-                <p class="text-slate-500 text-sm mt-0.5">
+                <h3 id="pagina-titulo" class="text-slate-900 font-bold text-xl">Agregar nueva propiedad</h3>
+                <p id="pagina-subtitulo" class="text-slate-500 text-sm mt-0.5">
                     Registra un inmueble en tu portafolio. Puedes asignarle departamentos si es un edificio.
                 </p>
             </div>
@@ -68,7 +65,6 @@
                     <p class="text-slate-500 text-xs mb-3 ml-8">Selecciona la categoría que mejor describe la propiedad.</p>
 
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                        <!-- Las tarjetas se generan vía JS (data-tipo) para mantener un solo handler -->
                         <label class="tipo-option cursor-pointer" data-tipo="EDIFICIO">
                             <input type="radio" name="tipo_propiedad" value="EDIFICIO" class="sr-only" checked />
                             <div class="tipo-card flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all">
@@ -120,13 +116,17 @@
                         </label>
                     </div>
 
-                    <!-- Si el tipo seleccionado es DEPARTAMENTO mostramos selector de edificio padre -->
+                    <!-- Aviso si se está editando (el tipo NO debería cambiarse) -->
+                    <p id="aviso-tipo-edicion" class="hidden mt-3 ml-8 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        ⚠️ En modo edición, no es recomendable cambiar el tipo de propiedad. Si lo necesitas, elimina la propiedad y crea una nueva.
+                    </p>
+
+                    <!-- Selector de edificio padre (cuando tipo=DEPARTAMENTO) -->
                     <div id="bloque-padre" class="hidden mt-4">
                         <label class="block text-xs font-medium text-slate-600 mb-1.5">Edificio al que pertenece</label>
                         <select id="propiedad-padre-id"
                                 class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
                             <option value="">— Independiente (sin edificio) —</option>
-                            <!-- Se llena dinámicamente -->
                         </select>
                         <p class="text-slate-400 text-xs mt-1">
                             Opcional. Útil si registras un departamento dentro de un edificio existente.
@@ -172,27 +172,39 @@
                         <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
                         <h4 class="text-slate-800 font-semibold text-sm">Departamentos del edificio</h4>
                     </div>
-                    <p class="text-slate-500 text-xs mb-3 ml-8">
-                        Indica cuántas unidades tiene este edificio. Se crearán automáticamente como propiedades hijas.
-                    </p>
 
-                    <div class="flex flex-wrap items-center gap-4 mb-4 ml-8">
-                        <div class="flex items-center gap-2">
-                            <button type="button" id="btn-restar-deptos"
-                                    class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">−</button>
-                            <input id="cantidad-departamentos" type="number" min="0" max="60" value="4"
-                                   class="w-16 px-2 py-2 text-center rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold" />
-                            <button type="button" id="btn-sumar-deptos"
-                                    class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">+</button>
+                    <!-- ╔ Departamentos existentes (solo modo edición) ╗ -->
+                    <div id="bloque-deptos-existentes" class="hidden mb-5 ml-8">
+                        <p class="text-slate-700 text-xs font-semibold mb-2">Departamentos ya registrados</p>
+                        <p class="text-slate-400 text-[11px] mb-3">
+                            Puedes quitar departamentos siempre y cuando no tengan un contrato activo asociado.
+                        </p>
+                        <div id="lista-deptos-existentes" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <!-- Render dinámico -->
                         </div>
-                        <span id="cantidad-label" class="text-slate-500 text-xs">4 departamentos</span>
                     </div>
 
-                    <!-- Esqueleto visual de los departamentos -->
-                    <div class="ml-8 p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-100">
-                        <p class="text-slate-500 text-xs mb-3 font-medium">Vista previa de unidades</p>
-                        <div id="grid-departamentos" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                            <!-- Se renderiza vía JS -->
+                    <!-- ╔ Agregar nuevos departamentos ╗ -->
+                    <div class="ml-8">
+                        <p id="label-cantidad-nuevos" class="text-slate-500 text-xs mb-3">
+                            Indica cuántas unidades tiene este edificio. Se crearán automáticamente como propiedades hijas.
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-4 mb-4">
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-restar-deptos"
+                                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">−</button>
+                                <input id="cantidad-departamentos" type="number" min="0" max="60" value="4"
+                                       class="w-16 px-2 py-2 text-center rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold" />
+                                <button type="button" id="btn-sumar-deptos"
+                                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">+</button>
+                            </div>
+                            <span id="cantidad-label" class="text-slate-500 text-xs">4 departamentos</span>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-100">
+                            <p class="text-slate-500 text-xs mb-3 font-medium">Vista previa de unidades</p>
+                            <div id="grid-departamentos" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
                         </div>
                     </div>
                 </section>
@@ -215,7 +227,6 @@
             <aside class="lg:col-span-1 anim-fade-in-up anim-delay-2">
                 <div class="sticky top-20 space-y-4">
 
-                    <!-- Resumen -->
                     <div class="bg-gradient-to-br from-[#0c1f4a] via-[#0f2557] to-[#1a3680] rounded-2xl p-5 text-white shadow-xl">
                         <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider mb-2">Vista previa</p>
                         <h5 id="preview-nombre" class="font-bold text-lg leading-tight truncate">Sin nombre</h5>
@@ -233,7 +244,6 @@
                         </div>
                     </div>
 
-                    <!-- Consejos -->
                     <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100">
                         <p class="text-blue-900 text-xs font-bold mb-2">💡 Consejos</p>
                         <ul class="text-slate-600 text-xs space-y-1.5 leading-relaxed">
@@ -252,26 +262,24 @@
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
     <script src="../js/agregar-propiedad.js"></script>
 
     <script>
-    /* ── Inicialización ── */
     (async () => {
         try {
             await LAYOUT.inyectarLayout({ paginaActiva: 'propiedades' });
-            LAYOUT.setPageTitle('Agregar propiedad');
 
             const loader = document.getElementById('initial-loader');
             if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
 
-            // Solo arrendadores pueden acceder a esta página (RF-04)
             const usuario = await AUTH.obtenerUsuarioActual();
             if (!usuario || usuario.rol !== 'ARRENDADOR') {
                 window.location.replace('dashboard-inquilino.html');
                 return;
             }
 
-            // Inicializar el módulo de la página
+            // El módulo decide internamente si estamos en modo crear o editar
             AGREGAR_PROPIEDAD.init(usuario);
         } catch (err) {
             console.error('[AGREGAR-PROPIEDAD] Error de init:', err);
