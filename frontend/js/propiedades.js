@@ -35,109 +35,287 @@ const PROPIEDADES = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // SVG decorativos de fondo (uno por tipo de propiedad)
-    // Se renderizan absolute, opacidad baja, sin interferir con texto.
+    // Arte de fondo (estilo "skyline" del login: rectángulos rellenos
+    // con ventanas iluminadas pseudoaleatorias).
+    //
+    // Se renderiza como SVG inline en cada card, posicionado absolute
+    // en la esquina inferior derecha, con opacidad baja para no
+    // competir con el texto.
+    //
+    // Usa el propiedad_id como semilla del PRNG → cada tarjeta tiene
+    // composición única pero estable entre re-renders.
     // ──────────────────────────────────────────────────────────────
-    function _svgFondo(tipo) {
-        // Paleta: azul navy con muy baja opacidad → no compite con el texto
-        const wrap = (svgInner) => `
-            <div class="absolute -bottom-3 -right-3 w-36 h-36 text-[#0c1f4a] opacity-[0.06] pointer-events-none select-none"
+
+    // Paleta tomada del canvas del login (drawBuildings)
+    const _PALETTE_BUILDINGS = ['#0a1a3a', '#0d1f47', '#122a5a', '#1a3770', '#0f2557'];
+    const _COLOR_WINDOW = '#2a4b8c';
+    const _COLOR_LIGHT  = '#ffdd88';
+    const _COLOR_BASE   = '#0a142a';
+
+    // PRNG determinista (LCG simple) → misma seed produce siempre la misma secuencia
+    function _seededRand(seed) {
+        let s = (seed || 1) >>> 0;
+        if (s === 0) s = 1;
+        return () => {
+            s = (s * 9301 + 49297) % 233280;
+            return s / 233280;
+        };
+    }
+
+    function _svgFondo(tipo, seedId) {
+        // Wrapper: esquina inferior derecha, sin recortar, baja opacidad
+        // overflow-hidden para que el SVG no se desborde fuera de la card
+        const wrap = (svgInner, viewBox = '0 0 200 140') => `
+            <div class="absolute bottom-0 right-0 w-48 h-32 pointer-events-none select-none overflow-hidden opacity-[0.13]"
                  aria-hidden="true">
-                ${svgInner}
+                <svg viewBox="${viewBox}" preserveAspectRatio="xMaxYMax meet" class="w-full h-full block">
+                    ${svgInner}
+                </svg>
             </div>`;
 
-        if (tipo === 'CASA') {
-            // Silueta de casa: techo + paredes + puerta + ventana
-            return wrap(`
-                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-                    <path d="M10 50 L50 18 L90 50" />
-                    <path d="M18 46 L18 88 L82 88 L82 46" />
-                    <path d="M42 88 L42 64 L58 64 L58 88" />
-                    <rect x="26" y="56" width="10" height="10" />
-                    <rect x="64" y="56" width="10" height="10" />
-                    <path d="M70 18 L70 28 L78 28 L78 32" />
-                </svg>`);
+        if (tipo === 'EDIFICIO') return wrap(_artEdificio(seedId));
+        if (tipo === 'DEPARTAMENTO') return wrap(_artDepartamento(seedId));
+        if (tipo === 'CASA') return wrap(_artCasa(seedId));
+        if (tipo === 'LOCAL') return wrap(_artLocal(seedId));
+        if (tipo === 'TERRENO') return wrap(_artTerreno(seedId));
+        return '';
+    }
+
+    // ── EDIFICIO: skyline de 3-4 edificios con ventanas iluminadas ──
+    function _artEdificio(seed) {
+        const rand = _seededRand(seed);
+        const W = 200, H = 140, baseY = H - 6;
+        const numEdif = 3 + Math.floor(rand() * 2); // 3 o 4
+        const totalGap = W * 0.12;
+        const buildingW = (W - totalGap) / numEdif * 0.92;
+        const gap = (W - buildingW * numEdif) / numEdif;
+        let svg = '';
+
+        for (let i = 0; i < numEdif; i++) {
+            const x = i * (buildingW + gap) + gap / 2;
+            // Edificios centrales más altos, laterales medianos
+            const isCenter = i === Math.floor(numEdif / 2);
+            const hPct = isCenter ? (0.78 + rand() * 0.18) : (0.55 + rand() * 0.30);
+            const bh = baseY * hPct;
+            const y = baseY - bh;
+            const color = _PALETTE_BUILDINGS[Math.floor(rand() * _PALETTE_BUILDINGS.length)];
+
+            // Cuerpo
+            svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}"/>`;
+
+            // Techo triangular ocasional (como en el login)
+            if (rand() > 0.45) {
+                svg += `<polygon points="${x.toFixed(1)},${y.toFixed(1)} ${(x + buildingW/2).toFixed(1)},${(y - 7).toFixed(1)} ${(x + buildingW).toFixed(1)},${y.toFixed(1)}" fill="${color}"/>`;
+            }
+
+            // Ventanas en cuadrícula
+            const rowH = 14;
+            const colW = 9;
+            const rows = Math.floor(bh / rowH);
+            const cols = Math.max(1, Math.floor(buildingW / colW));
+            const winW = (buildingW / cols) * 0.55;
+            const winH = 5;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const wx = x + c * (buildingW / cols) + (buildingW / cols - winW) / 2;
+                    const wy = y + r * rowH + 4;
+                    if (wy + winH > baseY - 4) continue;
+                    const lit = rand() > 0.72;
+                    svg += `<rect x="${wx.toFixed(1)}" y="${wy.toFixed(1)}" width="${winW.toFixed(1)}" height="${winH}" fill="${lit ? _COLOR_LIGHT : _COLOR_WINDOW}"/>`;
+                }
+            }
         }
 
-        if (tipo === 'EDIFICIO') {
-            // Silueta de torre con ventanas dispuestas en cuadrícula
-            return wrap(`
-                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-                    <path d="M20 12 L20 90 L80 90 L80 12 Z" />
-                    <path d="M20 90 L80 90" />
-                    <rect x="28" y="22" width="10" height="10" />
-                    <rect x="46" y="22" width="10" height="10" />
-                    <rect x="62" y="22" width="10" height="10" />
-                    <rect x="28" y="38" width="10" height="10" />
-                    <rect x="46" y="38" width="10" height="10" />
-                    <rect x="62" y="38" width="10" height="10" />
-                    <rect x="28" y="54" width="10" height="10" />
-                    <rect x="46" y="54" width="10" height="10" />
-                    <rect x="62" y="54" width="10" height="10" />
-                    <path d="M44 90 L44 72 L56 72 L56 90" />
-                </svg>`);
+        // Suelo / calle
+        svg += `<rect x="0" y="${baseY}" width="${W}" height="6" fill="${_COLOR_BASE}"/>`;
+        return svg;
+    }
+
+    // ── DEPARTAMENTO: un solo edificio centrado, con muchas ventanas iluminadas ──
+    function _artDepartamento(seed) {
+        const rand = _seededRand(seed);
+        const W = 200, H = 140, baseY = H - 6;
+        const buildingW = 110;
+        const bh = 120;
+        const x = (W - buildingW) / 2 + 30; // ligeramente desplazado a la derecha
+        const y = baseY - bh;
+        const color = _PALETTE_BUILDINGS[2]; // azul intermedio
+        let svg = '';
+
+        // Cuerpo principal
+        svg += `<rect x="${x}" y="${y}" width="${buildingW}" height="${bh}" fill="${color}"/>`;
+
+        // Pequeña antena/asta en la azotea
+        svg += `<rect x="${x + buildingW/2 - 0.7}" y="${y - 10}" width="1.4" height="10" fill="${color}"/>`;
+
+        // Ventanas: cuadrícula densa de un departamento de pisos
+        const rows = 8;
+        const cols = 5;
+        const padX = 8;
+        const padY = 8;
+        const cellW = (buildingW - padX * 2) / cols;
+        const cellH = (bh - padY * 2) / rows;
+        const winW = cellW * 0.62;
+        const winH = cellH * 0.55;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const wx = x + padX + c * cellW + (cellW - winW) / 2;
+                const wy = y + padY + r * cellH + (cellH - winH) / 2;
+                const lit = rand() > 0.55; // más ventanas iluminadas: se siente "habitado"
+                svg += `<rect x="${wx.toFixed(1)}" y="${wy.toFixed(1)}" width="${winW.toFixed(1)}" height="${winH.toFixed(1)}" fill="${lit ? _COLOR_LIGHT : _COLOR_WINDOW}"/>`;
+            }
         }
 
-        if (tipo === 'DEPARTAMENTO') {
-            // Sala de estar: sofá, lámpara de pie, mesita
-            return wrap(`
-                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-                    <!-- piso -->
-                    <path d="M8 84 L92 84" />
-                    <!-- sofá -->
-                    <path d="M22 60 L22 78 L72 78 L72 60" />
-                    <path d="M22 60 Q22 56 26 56 L68 56 Q72 56 72 60" />
-                    <path d="M30 56 L30 70 M40 56 L40 70 M50 56 L50 70 M60 56 L60 70" />
-                    <path d="M22 78 L22 84 M72 78 L72 84" />
-                    <!-- mesita lateral -->
-                    <path d="M78 70 L78 84 M84 70 L84 84 M76 70 L86 70" />
-                    <!-- lámpara de pie -->
-                    <path d="M86 36 L78 50 L94 50 Z" />
-                    <path d="M86 50 L86 84" />
-                    <!-- cuadro en la pared -->
-                    <rect x="32" y="22" width="20" height="14" />
-                </svg>`);
+        // Suelo
+        svg += `<rect x="0" y="${baseY}" width="${W}" height="6" fill="${_COLOR_BASE}"/>`;
+        return svg;
+    }
+
+    // ── CASA: una sola casa con techo a dos aguas y ventanas iluminadas ──
+    function _artCasa(seed) {
+        const rand = _seededRand(seed);
+        const W = 200, H = 140, baseY = H - 6;
+        const houseW = 130;
+        const wallH = 70;
+        const x = (W - houseW) / 2 + 30;
+        const y = baseY - wallH;
+        const roofH = 40;
+        const color = _PALETTE_BUILDINGS[1];
+        const roofColor = _PALETTE_BUILDINGS[0]; // techo más oscuro
+        let svg = '';
+
+        // Paredes
+        svg += `<rect x="${x}" y="${y}" width="${houseW}" height="${wallH}" fill="${color}"/>`;
+        // Techo triangular
+        svg += `<polygon points="${x - 6},${y} ${x + houseW/2},${y - roofH} ${x + houseW + 6},${y}" fill="${roofColor}"/>`;
+        // Chimenea
+        svg += `<rect x="${x + houseW * 0.72}" y="${y - roofH * 0.7}" width="7" height="14" fill="${roofColor}"/>`;
+
+        // Puerta (centrada, oscura)
+        const doorW = 14, doorH = 28;
+        const dx = x + houseW / 2 - doorW / 2;
+        const dy = baseY - doorH;
+        svg += `<rect x="${dx}" y="${dy}" width="${doorW}" height="${doorH}" fill="${_COLOR_BASE}"/>`;
+        // Pomo
+        svg += `<circle cx="${dx + doorW - 3}" cy="${dy + doorH/2}" r="1" fill="${_COLOR_LIGHT}"/>`;
+
+        // Ventanas (2 grandes, casi siempre iluminadas)
+        const winW = 18, winH = 14;
+        const win1X = x + 12;
+        const win2X = x + houseW - 12 - winW;
+        const winY = y + 14;
+        const lit1 = rand() > 0.25; // alta probabilidad iluminada
+        const lit2 = rand() > 0.30;
+        svg += `<rect x="${win1X}" y="${winY}" width="${winW}" height="${winH}" fill="${lit1 ? _COLOR_LIGHT : _COLOR_WINDOW}"/>`;
+        svg += `<rect x="${win2X}" y="${winY}" width="${winW}" height="${winH}" fill="${lit2 ? _COLOR_LIGHT : _COLOR_WINDOW}"/>`;
+        // Cruces de las ventanas (marco)
+        svg += `<rect x="${win1X + winW/2 - 0.5}" y="${winY}" width="1" height="${winH}" fill="${color}"/>`;
+        svg += `<rect x="${win1X}" y="${winY + winH/2 - 0.5}" width="${winW}" height="1" fill="${color}"/>`;
+        svg += `<rect x="${win2X + winW/2 - 0.5}" y="${winY}" width="1" height="${winH}" fill="${color}"/>`;
+        svg += `<rect x="${win2X}" y="${winY + winH/2 - 0.5}" width="${winW}" height="1" fill="${color}"/>`;
+
+        // Suelo
+        svg += `<rect x="0" y="${baseY}" width="${W}" height="6" fill="${_COLOR_BASE}"/>`;
+        return svg;
+    }
+
+    // ── LOCAL: edificio bajo y ancho con gran escaparate iluminado ──
+    function _artLocal(seed) {
+        const rand = _seededRand(seed);
+        const W = 200, H = 140, baseY = H - 6;
+        const localW = 160;
+        const localH = 80;
+        const x = (W - localW) / 2 + 20;
+        const y = baseY - localH;
+        const color = _PALETTE_BUILDINGS[3];
+        const toldoColor = _PALETTE_BUILDINGS[0];
+        let svg = '';
+
+        // Cuerpo del local
+        svg += `<rect x="${x}" y="${y}" width="${localW}" height="${localH}" fill="${color}"/>`;
+
+        // Toldo (rectángulo + franja decorativa)
+        const toldoY = y - 12;
+        svg += `<rect x="${x - 4}" y="${toldoY}" width="${localW + 8}" height="12" fill="${toldoColor}"/>`;
+        // Franjas verticales del toldo (cada 12 px)
+        for (let i = 1; i < (localW + 8) / 12; i++) {
+            const fx = x - 4 + i * 12;
+            svg += `<rect x="${fx.toFixed(1)}" y="${toldoY}" width="0.8" height="12" fill="${color}"/>`;
         }
 
-        if (tipo === 'LOCAL') {
-            // Local comercial: fachada con toldo y ventana grande
-            return wrap(`
-                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-                    <path d="M14 36 L86 36 L86 90 L14 90 Z" />
-                    <!-- toldo -->
-                    <path d="M10 36 L90 36 L82 22 L18 22 Z" />
-                    <path d="M22 22 L26 36 M34 22 L36 36 M46 22 L46 36 M58 22 L56 36 M70 22 L66 36 M82 22 L76 36" />
-                    <!-- escaparate -->
-                    <rect x="22" y="46" width="36" height="34" />
-                    <!-- puerta -->
-                    <path d="M64 46 L64 86 L78 86 L78 46" />
-                    <circle cx="74" cy="68" r="1.4" fill="currentColor" />
-                </svg>`);
+        // Escaparate izquierdo (grande, iluminado casi siempre)
+        const escW = 80, escH = 50;
+        const ex = x + 10;
+        const ey = y + 12;
+        const escLit = rand() > 0.20;
+        svg += `<rect x="${ex}" y="${ey}" width="${escW}" height="${escH}" fill="${escLit ? _COLOR_LIGHT : _COLOR_WINDOW}"/>`;
+        // Cruz interna del escaparate
+        svg += `<rect x="${ex + escW/2 - 0.6}" y="${ey}" width="1.2" height="${escH}" fill="${color}"/>`;
+        svg += `<rect x="${ex}" y="${ey + escH/2 - 0.6}" width="${escW}" height="1.2" fill="${color}"/>`;
+
+        // Puerta derecha
+        const pdx = x + localW - 36;
+        const pdW = 22, pdH = 60;
+        const pdy = baseY - pdH;
+        svg += `<rect x="${pdx}" y="${pdy}" width="${pdW}" height="${pdH}" fill="${_COLOR_BASE}"/>`;
+        // Línea divisoria vertical de la puerta doble
+        svg += `<rect x="${pdx + pdW/2 - 0.5}" y="${pdy}" width="1" height="${pdH}" fill="${color}"/>`;
+        // Pomos
+        svg += `<circle cx="${pdx + pdW/2 - 3}" cy="${pdy + pdH/2}" r="1" fill="${_COLOR_LIGHT}"/>`;
+        svg += `<circle cx="${pdx + pdW/2 + 3}" cy="${pdy + pdH/2}" r="1" fill="${_COLOR_LIGHT}"/>`;
+
+        // Suelo
+        svg += `<rect x="0" y="${baseY}" width="${W}" height="6" fill="${_COLOR_BASE}"/>`;
+        return svg;
+    }
+
+    // ── TERRENO: horizonte amplio con cerco bajo y árbol relleno ──
+    function _artTerreno(seed) {
+        const rand = _seededRand(seed);
+        const W = 200, H = 140, baseY = H - 6;
+        let svg = '';
+
+        // Pasto: rectángulo bajo verde-azulado oscuro (mismo tono que los buildings)
+        const pastoColor = _PALETTE_BUILDINGS[3];
+        svg += `<rect x="0" y="${baseY - 8}" width="${W}" height="8" fill="${pastoColor}"/>`;
+
+        // Cerco (postes + 2 travesaños)
+        const cercoColor = _PALETTE_BUILDINGS[1];
+        const postes = 7;
+        const cercoStartX = 14;
+        const cercoEndX = 110;
+        const gapPoste = (cercoEndX - cercoStartX) / (postes - 1);
+        for (let i = 0; i < postes; i++) {
+            const px = cercoStartX + i * gapPoste;
+            svg += `<rect x="${px - 1}" y="${baseY - 26}" width="2" height="20" fill="${cercoColor}"/>`;
+        }
+        // Travesaños horizontales
+        svg += `<rect x="${cercoStartX - 2}" y="${baseY - 22}" width="${cercoEndX - cercoStartX + 4}" height="1.5" fill="${cercoColor}"/>`;
+        svg += `<rect x="${cercoStartX - 2}" y="${baseY - 14}" width="${cercoEndX - cercoStartX + 4}" height="1.5" fill="${cercoColor}"/>`;
+
+        // Árbol a la derecha
+        const treeX = 158;
+        const treeY = baseY - 56;
+        const trunkColor = _PALETTE_BUILDINGS[0];
+        const leavesColor = _PALETTE_BUILDINGS[2];
+        // Tronco
+        svg += `<rect x="${treeX - 3}" y="${treeY + 22}" width="6" height="30" fill="${trunkColor}"/>`;
+        // Copa (3 círculos para forma orgánica)
+        svg += `<circle cx="${treeX - 8}" cy="${treeY + 12}" r="14" fill="${leavesColor}"/>`;
+        svg += `<circle cx="${treeX + 10}" cy="${treeY + 14}" r="13" fill="${leavesColor}"/>`;
+        svg += `<circle cx="${treeX}" cy="${treeY}" r="16" fill="${leavesColor}"/>`;
+        // Destello de fruta o flor (puntito amarillo aleatorio)
+        if (rand() > 0.4) {
+            svg += `<circle cx="${treeX + 2}" cy="${treeY + 8}" r="1.3" fill="${_COLOR_LIGHT}"/>`;
         }
 
-        if (tipo === 'TERRENO') {
-            // Terreno: cerco con árbol
-            return wrap(`
-                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-                    <!-- piso -->
-                    <path d="M6 80 L94 80" />
-                    <!-- cerco -->
-                    <path d="M12 80 L12 60 M22 80 L22 60 M32 80 L32 60 M42 80 L42 60" />
-                    <path d="M8 66 L46 66 M8 72 L46 72" />
-                    <!-- árbol -->
-                    <circle cx="72" cy="48" r="18" />
-                    <path d="M72 66 L72 86" />
-                    <!-- pasto -->
-                    <path d="M52 84 L54 80 M58 84 L60 80 M86 84 L88 80" />
-                </svg>`);
-        }
+        // Sol/luna pequeña en el horizonte
+        svg += `<circle cx="${W - 24}" cy="22" r="6" fill="${_COLOR_LIGHT}" opacity="0.7"/>`;
 
-        return ''; // fallback sin decoración
+        // Línea base más oscura
+        svg += `<rect x="0" y="${baseY}" width="${W}" height="6" fill="${_COLOR_BASE}"/>`;
+        return svg;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -412,7 +590,8 @@ const PROPIEDADES = (() => {
             </button>` : '';
 
         // SVG decorativo según el tipo (z-index bajo, opacidad baja)
-        const svgFondo = _svgFondo(p.tipo_propiedad);
+        // Seed = propiedad_id → cada card tiene composición única pero estable entre renders
+        const svgFondo = _svgFondo(p.tipo_propiedad, p.propiedad_id);
 
         // ── Card: contenedor relativo + overflow-hidden para el SVG de fondo ──
         // El contenido propio va en una capa "relative z-10" para quedar por encima.
