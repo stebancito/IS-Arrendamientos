@@ -64,6 +64,82 @@
             </div>
         </div>
 
+        <!-- ╔══════════════════════════════════════════════════════════════╗ -->
+        <!-- ║  SEMÁFORO DE CONFIANZA + MINI-RESUMEN DE DEPTO (solo lectura)║ -->
+        <!-- ║  RF-04: Sin herramientas de edición de propiedades aquí.     ║ -->
+        <!-- ╚══════════════════════════════════════════════════════════════╝ -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+            <!-- Tarjeta semáforo -->
+            <div id="card-semaforo"
+                 class="anim-fade-in-up anim-delay-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div id="sem-cab" class="bg-slate-100 border-b border-slate-200 px-5 py-3 flex items-center gap-3">
+                    <span id="sem-dot" class="w-3 h-3 rounded-full bg-slate-400"></span>
+                    <span id="sem-titulo" class="text-slate-700 text-xs font-bold uppercase tracking-wider">Tu comportamiento</span>
+                </div>
+                <div class="p-5">
+                    <p id="sem-label" class="text-slate-900 font-extrabold text-2xl">Cargando…</p>
+                    <p id="sem-desc"  class="text-slate-500 text-xs mt-1">Análisis de pagos en curso.</p>
+
+                    <div class="grid grid-cols-3 gap-2 mt-4 text-center">
+                        <div class="rounded-xl bg-slate-50 py-2">
+                            <p id="sem-cumpl" class="text-slate-800 font-bold text-base">—</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Cumplimiento</p>
+                        </div>
+                        <div class="rounded-xl bg-slate-50 py-2">
+                            <p id="sem-pagados" class="text-green-600 font-bold text-base">—</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Pagados</p>
+                        </div>
+                        <div class="rounded-xl bg-slate-50 py-2">
+                            <p id="sem-vencidos" class="text-red-600 font-bold text-base">—</p>
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Vencidos</p>
+                        </div>
+                    </div>
+
+                    <p class="text-slate-400 text-xs mt-4 italic">
+                        Este indicador refleja tu historial de pagos. Mantenerlo en verde mejora tu reputación como inquilino.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mini-resumen del depto (solo lectura) -->
+            <div class="anim-fade-in-up anim-delay-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-slate-900 font-bold text-sm">Mi departamento</p>
+                        <p class="text-slate-400 text-xs">Resumen rápido</p>
+                    </div>
+                </div>
+                <dl class="text-sm space-y-2.5">
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">Propiedad</dt>
+                        <dd id="depto-nombre" class="text-slate-800 font-semibold text-right truncate max-w-[60%]">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">Dirección</dt>
+                        <dd id="depto-direccion" class="text-slate-800 text-right truncate max-w-[60%]">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">Edificio</dt>
+                        <dd id="depto-edificio" class="text-slate-800 text-right truncate max-w-[60%]">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">Tipo</dt>
+                        <dd id="depto-tipo" class="text-slate-800 text-right">—</dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">Beneficios</dt>
+                        <dd id="depto-beneficios" class="text-slate-700 text-right text-xs italic max-w-[60%]">—</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
         <!-- ── Tarjetas de pagos ─────────────────────────────── -->
         <div class="grid grid-cols-3 gap-3 mb-6">
 
@@ -163,18 +239,15 @@
             await LAYOUT.inyectarLayout({ paginaActiva: 'dashboard' });
             LAYOUT.setPageTitle('Mi Dashboard');
 
-            // Ocultar loader
             const loader = document.getElementById('initial-loader');
             if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
 
             const usuario = await AUTH.obtenerUsuarioActual();
             const nombre1  = (usuario?.nombre_completo || '').split(' ')[0];
 
-            // Saludo
             const welcomeEl = document.getElementById('welcome-msg');
             if (welcomeEl && nombre1) welcomeEl.textContent = `Hola, ${nombre1}`;
 
-            // Cargar datos del inquilino
             await cargarDashboardInquilino(usuario);
 
         } catch (err) {
@@ -185,34 +258,28 @@
     async function cargarDashboardInquilino(usuario) {
         if (!usuario) return;
 
-        // Obtener registro inquilino
         const { data: inquilino } = await window.supabaseClient
             .from('inquilinos')
             .select('inquilino_id')
             .eq('usuario_id', usuario.usuario_id)
             .maybeSingle();
-        if (!inquilino) {
-            _sinContrato();
-            return;
-        }
+        if (!inquilino) { _sinContrato(); return; }
 
-        // Obtener contrato activo
+        // Contrato activo + propiedad asociada (incluyendo el edificio padre vía jerarquía)
         const { data: contrato } = await window.supabaseClient
             .from('contratos')
             .select(`
                 contrato_id, fecha_inicio, fecha_fin, monto_renta, frecuencia_pago, estado,
-                propiedades ( nombre, direccion )
+                propiedades (
+                    propiedad_id, nombre, direccion, descripcion, tipo_propiedad, propiedad_padre_id
+                )
             `)
             .eq('inquilino_id', inquilino.inquilino_id)
             .eq('estado', 'ACTIVO')
-            .single();
+            .maybeSingle();
 
-        if (!contrato) {
-            _sinContrato();
-            return;
-        }
+        if (!contrato) { _sinContrato(); return; }
 
-        // Actualizar banner de contrato
         const prop = contrato.propiedades;
         document.getElementById('contrato-propiedad').textContent =
             prop ? `${prop.nombre} — ${prop.direccion}` : 'Propiedad sin nombre';
@@ -227,7 +294,7 @@
             new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
                 .format(contrato.monto_renta);
 
-        // Progreso del contrato
+        // Progreso
         const total   = fin - inicio;
         const elapsed = Math.min(Date.now() - inicio, total);
         const pct     = total > 0 ? Math.round((elapsed / total) * 100) : 0;
@@ -236,7 +303,26 @@
             document.getElementById('barra-progreso').style.width = pct + '%';
         });
 
-        // Pagos
+        // ── Mini-resumen del depto ─────────────────────────
+        const tipoLbl = { EDIFICIO:'Edificio', DEPARTAMENTO:'Departamento', CASA:'Casa', LOCAL:'Local', TERRENO:'Terreno' };
+        document.getElementById('depto-nombre').textContent     = prop?.nombre || '—';
+        document.getElementById('depto-direccion').textContent  = prop?.direccion || '—';
+        document.getElementById('depto-tipo').textContent       = tipoLbl[prop?.tipo_propiedad] || prop?.tipo_propiedad || '—';
+        document.getElementById('depto-beneficios').textContent = prop?.descripcion?.trim() || 'Sin descripción';
+
+        // Si el depto tiene padre (edificio), consultamos su nombre
+        if (prop?.propiedad_padre_id) {
+            const { data: padre } = await window.supabaseClient
+                .from('propiedades')
+                .select('nombre')
+                .eq('propiedad_id', prop.propiedad_padre_id)
+                .maybeSingle();
+            document.getElementById('depto-edificio').textContent = padre?.nombre || '—';
+        } else {
+            document.getElementById('depto-edificio').textContent = 'Independiente';
+        }
+
+        // ── Pagos + semáforo de confianza ─────────────────
         const { data: pagos } = await window.supabaseClient
             .from('calendario_pagos')
             .select('calendario_id, fecha_limite, monto_esperado, estado')
@@ -246,12 +332,22 @@
         const pendientes = (pagos || []).filter(p => p.estado === 'PENDIENTE').length;
         const pagados    = (pagos || []).filter(p => p.estado === 'PAGADO').length;
         const vencidos   = (pagos || []).filter(p => p.estado === 'VENCIDO').length;
+        const totalP     = (pagos || []).length;
+        const cumplPct   = totalP > 0 ? Math.round((pagados / totalP) * 100) : null;
 
         document.getElementById('pago-pendientes').textContent = pendientes;
         document.getElementById('pago-pagados').textContent    = pagados;
         document.getElementById('pago-vencidos').textContent   = vencidos;
 
-        // Próximos pagos (los 3 próximos pendientes)
+        // Calcular nivel del semáforo
+        let nivel = 'VERDE';
+        if (vencidos > 2 || (cumplPct != null && cumplPct < 60))      nivel = 'ROJO';
+        else if (vencidos >= 1 || (cumplPct != null && cumplPct < 90)) nivel = 'AMARILLO';
+        if (totalP === 0) nivel = 'NEUTRO';
+
+        _pintarSemaforo(nivel, cumplPct, pagados, vencidos);
+
+        // ── Próximos pagos ─────────────────────────────────
         const proximos = (pagos || [])
             .filter(p => p.estado === 'PENDIENTE' || p.estado === 'VENCIDO')
             .slice(0, 3);
@@ -291,6 +387,32 @@
         }).join('');
     }
 
+    // ── Helper: pintar el semáforo de confianza ───────────────
+    function _pintarSemaforo(nivel, cumpl, pagados, vencidos) {
+        const cab   = document.getElementById('sem-cab');
+        const dot   = document.getElementById('sem-dot');
+        const tit   = document.getElementById('sem-titulo');
+        const label = document.getElementById('sem-label');
+        const desc  = document.getElementById('sem-desc');
+
+        const styles = {
+            VERDE:    { cab:'bg-green-50 border-green-200',  dot:'bg-green-500',  tit:'text-green-700',  label:'Excelente',  desc:'Pagas a tiempo. ¡Sigue así!' },
+            AMARILLO: { cab:'bg-yellow-50 border-yellow-200', dot:'bg-yellow-500', tit:'text-yellow-700', label:'Regular',    desc:'Cuida los plazos para mantener tu reputación.' },
+            ROJO:     { cab:'bg-red-50 border-red-200',     dot:'bg-red-500',     tit:'text-red-700',    label:'En riesgo',  desc:'Tienes pagos vencidos. Regulariza tu situación.' },
+            NEUTRO:   { cab:'bg-slate-50 border-slate-200', dot:'bg-slate-400',   tit:'text-slate-600',  label:'Sin historial', desc:'Aún no hay pagos suficientes para calificar.' },
+        };
+        const s = styles[nivel] || styles.NEUTRO;
+        cab.className = `${s.cab} border-b px-5 py-3 flex items-center gap-3`;
+        dot.className = `w-3 h-3 rounded-full ${s.dot} ${nivel !== 'NEUTRO' ? 'animate-pulse' : ''}`;
+        tit.className = `text-xs font-bold uppercase tracking-wider ${s.tit}`;
+        label.textContent = s.label;
+        desc.textContent  = s.desc;
+
+        document.getElementById('sem-cumpl').textContent    = cumpl != null ? `${cumpl}%` : '—';
+        document.getElementById('sem-pagados').textContent  = pagados;
+        document.getElementById('sem-vencidos').textContent = vencidos;
+    }
+
     function _sinContrato() {
         const banner = document.getElementById('contrato-banner');
         if (banner) {
@@ -306,6 +428,13 @@
         });
         const pp = document.getElementById('proximos-pagos');
         if (pp) pp.innerHTML = `<div class="py-8 text-center"><p class="text-slate-400 text-sm">No tienes pagos registrados.</p></div>`;
+
+        _pintarSemaforo('NEUTRO', null, 0, 0);
+        document.getElementById('depto-nombre').textContent     = '—';
+        document.getElementById('depto-direccion').textContent  = '—';
+        document.getElementById('depto-edificio').textContent   = '—';
+        document.getElementById('depto-tipo').textContent       = '—';
+        document.getElementById('depto-beneficios').textContent = '—';
     }
     </script>
 

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Propiedades | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando propiedades…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- ── Cabecera ───────────────────────────────────────── -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Mis propiedades</h3>
+                <p class="text-slate-500 text-sm mt-0.5">Administra tu portafolio de inmuebles.</p>
+            </div>
+            <a href="agregar-propiedad.html"
+               class="btn-primary inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl
+                      bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
+                      shadow-md shadow-blue-600/25">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Agregar propiedad
+            </a>
+        </div>
+
+        <!-- ── Tarjetas resumen ───────────────────────────────── -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Total</p>
+                <p id="m-total" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Ocupadas</p>
+                <p id="m-ocupadas" class="text-green-600 font-bold text-2xl mt-1">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Disponibles</p>
+                <p id="m-disponibles" class="text-blue-600 font-bold text-2xl mt-1">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Edificios</p>
+                <p id="m-edificios" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+            </div>
+        </div>
+
+        <!-- ── Filtros ────────────────────────────────────────── -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                <!-- Buscador -->
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                    </svg>
+                    <input id="f-buscar" type="text" placeholder="Buscar por nombre o dirección…"
+                           class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                </div>
+
+                <!-- Filtro tipo -->
+                <select id="f-tipo" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                    <option value="">Todos los tipos</option>
+                    <option value="EDIFICIO">Edificios</option>
+                    <option value="DEPARTAMENTO">Departamentos</option>
+                    <option value="CASA">Casas</option>
+                    <option value="LOCAL">Locales</option>
+                    <option value="TERRENO">Terrenos</option>
+                </select>
+
+                <!-- Filtro estado -->
+                <select id="f-estado" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                    <option value="">Cualquier estado</option>
+                    <option value="ocupada">Ocupada</option>
+                    <option value="disponible">Disponible</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ── Listado ────────────────────────────────────────── -->
+        <div id="lista-propiedades" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Skeleton cargando -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-1/2 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-1/2 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-1/2 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ╔════════ MODAL DETALLE EDIFICIO ════════╗ -->
+    <div id="modal-edificio"
+         class="fixed inset-0 z-40 hidden items-end sm:items-center justify-center
+                bg-black/50 backdrop-blur-sm transition-opacity duration-200 p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-3xl sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <!-- header -->
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 id="mod-edif-nombre" class="text-slate-900 font-bold text-base truncate">Edificio</h4>
+                    <p id="mod-edif-direccion" class="text-slate-500 text-xs truncate">—</p>
+                </div>
+                <button onclick="PROPIEDADES.cerrarModal()" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <!-- body -->
+            <div id="mod-edif-body" class="flex-1 overflow-y-auto p-5 space-y-3">
+                <p class="text-slate-400 text-sm text-center py-8">Cargando departamentos…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ╔════════ MODAL INCIDENCIAS RESUMEN ════════╗ -->
+    <div id="modal-incidencias"
+         class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center
+                bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+                <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="text-slate-900 font-bold text-base">Incidencias</h4>
+                    <p id="mod-inc-prop" class="text-slate-500 text-xs truncate">—</p>
+                </div>
+                <button onclick="PROPIEDADES.cerrarModalIncidencias()" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="mod-inc-body" class="flex-1 overflow-y-auto p-4 divide-y divide-slate-100"></div>
+        </div>
+    </div>
+
+    <!-- ╔════════ MODAL CONFIRMAR ELIMINAR ════════╗ -->
+    <div id="modal-eliminar"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-white max-w-sm w-full rounded-2xl p-5 shadow-2xl">
+            <div class="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-3">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <h4 class="text-slate-900 font-bold text-center text-base">¿Eliminar propiedad?</h4>
+            <p id="mod-del-msg" class="text-slate-500 text-sm text-center mt-2">
+                Esta acción la desactivará del portafolio.
+            </p>
+            <div class="flex gap-2 mt-5">
+                <button onclick="PROPIEDADES.cerrarModalEliminar()" class="flex-1 px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 text-sm font-semibold">Cancelar</button>
+                <button id="btn-confirmar-eliminar" class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Scripts ──────────────────────────────────────────────── -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/propiedades.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'propiedades' });
+            LAYOUT.setPageTitle('Gestión de propiedades');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+            PROPIEDADES.init(usuario);
+        } catch (err) {
+            console.error('[PROPIEDADES] Error de init:', err);
+        }
+    })();
+    </script>
+</body>
+</html>

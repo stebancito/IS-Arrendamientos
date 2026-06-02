@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agregar Propiedad | Arrendamientos App</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+
+<body class="font-sans antialiased bg-slate-50">
+
+    <!-- ── Loader inicial ──────────────────────────────────────── -->
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Preparando formulario…</p>
+    </div>
+
+    <!-- ── Contenido (extraído por layout.js) ─────────────────── -->
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera de la pantalla -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Agregar nueva propiedad</h3>
+                <p class="text-slate-500 text-sm mt-0.5">
+                    Registra un inmueble en tu portafolio. Puedes asignarle departamentos si es un edificio.
+                </p>
+            </div>
+            <a href="propiedades.html"
+               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
+                      bg-white border border-slate-200 hover:bg-slate-100
+                      transition text-sm font-medium self-start sm:self-auto">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Volver al listado
+            </a>
+        </div>
+
+        <!-- Alerta superior -->
+        <div id="form-alert" class="hidden"></div>
+
+        <!-- Grid principal: form (izq) + preview (der) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            <!-- ╔════════ FORMULARIO ════════╗ -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 anim-fade-in-up anim-delay-1">
+
+                <!-- ── Paso 1: tipo de propiedad ── -->
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Tipo de inmueble</h4>
+                    </div>
+                    <p class="text-slate-500 text-xs mb-3 ml-8">Selecciona la categoría que mejor describe la propiedad.</p>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                        <!-- Las tarjetas se generan vía JS (data-tipo) para mantener un solo handler -->
+                        <label class="tipo-option cursor-pointer" data-tipo="EDIFICIO">
+                            <input type="radio" name="tipo_propiedad" value="EDIFICIO" class="sr-only" checked />
+                            <div class="tipo-card flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                                <span class="text-xs font-semibold">Edificio</span>
+                            </div>
+                        </label>
+
+                        <label class="tipo-option cursor-pointer" data-tipo="DEPARTAMENTO">
+                            <input type="radio" name="tipo_propiedad" value="DEPARTAMENTO" class="sr-only" />
+                            <div class="tipo-card flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                </svg>
+                                <span class="text-xs font-semibold">Departamento</span>
+                            </div>
+                        </label>
+
+                        <label class="tipo-option cursor-pointer" data-tipo="CASA">
+                            <input type="radio" name="tipo_propiedad" value="CASA" class="sr-only" />
+                            <div class="tipo-card flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/>
+                                </svg>
+                                <span class="text-xs font-semibold">Casa</span>
+                            </div>
+                        </label>
+
+                        <label class="tipo-option cursor-pointer" data-tipo="LOCAL">
+                            <input type="radio" name="tipo_propiedad" value="LOCAL" class="sr-only" />
+                            <div class="tipo-card flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v4H4zM4 10h16v10H4z M9 14h6"/>
+                                </svg>
+                                <span class="text-xs font-semibold">Local</span>
+                            </div>
+                        </label>
+
+                        <label class="tipo-option cursor-pointer" data-tipo="TERRENO">
+                            <input type="radio" name="tipo_propiedad" value="TERRENO" class="sr-only" />
+                            <div class="tipo-card flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M21 7v6h-6"/>
+                                </svg>
+                                <span class="text-xs font-semibold">Terreno</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Si el tipo seleccionado es DEPARTAMENTO mostramos selector de edificio padre -->
+                    <div id="bloque-padre" class="hidden mt-4">
+                        <label class="block text-xs font-medium text-slate-600 mb-1.5">Edificio al que pertenece</label>
+                        <select id="propiedad-padre-id"
+                                class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                            <option value="">— Independiente (sin edificio) —</option>
+                            <!-- Se llena dinámicamente -->
+                        </select>
+                        <p class="text-slate-400 text-xs mt-1">
+                            Opcional. Útil si registras un departamento dentro de un edificio existente.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- ── Paso 2: datos básicos ── -->
+                <section class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Datos básicos</h4>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Nombre de referencia *</label>
+                            <input id="prop-nombre" type="text" maxlength="150"
+                                   placeholder="Ej. Edificio Reforma 124"
+                                   class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Dirección completa *</label>
+                            <textarea id="prop-direccion" rows="2" maxlength="500"
+                                      placeholder="Calle, número, colonia, ciudad, CP"
+                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Beneficios y descripción</label>
+                            <textarea id="prop-descripcion" rows="3" maxlength="1000"
+                                      placeholder="Ej. Estacionamiento, agua incluida, área común, seguridad 24/7…"
+                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                            <p class="text-slate-400 text-xs mt-1">Opcional. Estos detalles ayudan a recordar las características del inmueble.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Paso 3: configuración de departamentos (solo EDIFICIO) ── -->
+                <section id="bloque-departamentos" class="mb-7">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+                        <h4 class="text-slate-800 font-semibold text-sm">Departamentos del edificio</h4>
+                    </div>
+                    <p class="text-slate-500 text-xs mb-3 ml-8">
+                        Indica cuántas unidades tiene este edificio. Se crearán automáticamente como propiedades hijas.
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-4 mb-4 ml-8">
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btn-restar-deptos"
+                                    class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">−</button>
+                            <input id="cantidad-departamentos" type="number" min="0" max="60" value="4"
+                                   class="w-16 px-2 py-2 text-center rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold" />
+                            <button type="button" id="btn-sumar-deptos"
+                                    class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition">+</button>
+                        </div>
+                        <span id="cantidad-label" class="text-slate-500 text-xs">4 departamentos</span>
+                    </div>
+
+                    <!-- Esqueleto visual de los departamentos -->
+                    <div class="ml-8 p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-100">
+                        <p class="text-slate-500 text-xs mb-3 font-medium">Vista previa de unidades</p>
+                        <div id="grid-departamentos" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                            <!-- Se renderiza vía JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Botones de acción -->
+                <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 pt-4 border-t border-slate-100">
+                    <a href="propiedades.html"
+                       class="px-5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-medium text-center">
+                        Cancelar
+                    </a>
+                    <button id="btn-guardar" type="button"
+                            class="btn-primary px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm
+                                   shadow-md shadow-blue-600/25">
+                        Guardar propiedad
+                    </button>
+                </div>
+            </div>
+
+            <!-- ╔════════ PREVIEW LATERAL ════════╗ -->
+            <aside class="lg:col-span-1 anim-fade-in-up anim-delay-2">
+                <div class="sticky top-20 space-y-4">
+
+                    <!-- Resumen -->
+                    <div class="bg-gradient-to-br from-[#0c1f4a] via-[#0f2557] to-[#1a3680] rounded-2xl p-5 text-white shadow-xl">
+                        <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider mb-2">Vista previa</p>
+                        <h5 id="preview-nombre" class="font-bold text-lg leading-tight truncate">Sin nombre</h5>
+                        <p id="preview-direccion" class="text-blue-200/70 text-xs mt-1 line-clamp-2">Dirección…</p>
+
+                        <div class="mt-4 pt-4 border-t border-white/10 space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-blue-200/70">Tipo</span>
+                                <span id="preview-tipo" class="font-semibold text-white">Edificio</span>
+                            </div>
+                            <div class="flex justify-between text-xs" id="preview-deptos-row">
+                                <span class="text-blue-200/70">Unidades</span>
+                                <span id="preview-deptos" class="font-semibold text-white">4</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consejos -->
+                    <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                        <p class="text-blue-900 text-xs font-bold mb-2">💡 Consejos</p>
+                        <ul class="text-slate-600 text-xs space-y-1.5 leading-relaxed">
+                            <li>• Usa nombres descriptivos para identificarlos en el listado.</li>
+                            <li>• Si tu edificio tiene departamentos, créalos aquí mismo y luego asígnales inquilinos.</li>
+                            <li>• La descripción es útil para anuncios posteriores.</li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <!-- /page-template -->
+
+    <!-- ── Scripts ──────────────────────────────────────────────── -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/agregar-propiedad.js"></script>
+
+    <script>
+    /* ── Inicialización ── */
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'propiedades' });
+            LAYOUT.setPageTitle('Agregar propiedad');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            // Solo arrendadores pueden acceder a esta página (RF-04)
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+
+            // Inicializar el módulo de la página
+            AGREGAR_PROPIEDAD.init(usuario);
+        } catch (err) {
+            console.error('[AGREGAR-PROPIEDAD] Error de init:', err);
+        }
+    })();
+    </script>
+</body>
+</html>
