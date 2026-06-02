@@ -505,10 +505,10 @@ const PROPIEDADES = (() => {
             .eq('estado', 'ACTIVO');
 
         if ((count || 0) > 0) {
-            alert('No es posible eliminar esta propiedad: tiene contratos activos asociados (RN-01). Finaliza los contratos primero.');
+            TOAST.error('No es posible eliminar esta propiedad: tiene contratos activos asociados. Finaliza los contratos primero.');
             return;
         }
-
+        
         _idPendienteBorrar = id;
         const msg = p.tipo_propiedad === 'EDIFICIO'
             ? `Vas a desactivar el edificio "${p.nombre}" y sus departamentos asociados.`
@@ -544,7 +544,7 @@ const PROPIEDADES = (() => {
 
         cerrarModalEliminar();
         if (error) {
-            alert('No se pudo eliminar: ' + error.message);
+            TOAST.error('No se pudo eliminar: ' + error.message);
             return;
         }
         // Recargar listado
