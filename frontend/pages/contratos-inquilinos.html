@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Contrato | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- jsPDF para generar el PDF del contrato -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando tus contratos…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera -->
+        <div class="mb-6 anim-fade-in-up">
+            <h3 class="text-slate-900 font-bold text-xl">Mis contratos</h3>
+            <p class="text-slate-500 text-sm mt-0.5">
+                Aquí puedes aceptar nuevos contratos, descargar el PDF y solicitar cancelaciones anticipadas.
+            </p>
+        </div>
+
+        <!-- Tabs de filtro -->
+        <div class="flex gap-1 mb-5 bg-slate-100 p-1 rounded-xl w-full sm:w-fit anim-fade-in-up anim-delay-1">
+            <button class="tab-inq flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                    data-tab="PENDIENTE">
+                <i class="fa-solid fa-clock mr-1"></i> Pendientes
+                <span id="badge-pendiente" class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">0</span>
+            </button>
+            <button class="tab-inq flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                    data-tab="ACTIVO">
+                <i class="fa-solid fa-circle-check mr-1"></i> Activos
+                <span id="badge-activo" class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">0</span>
+            </button>
+            <button class="tab-inq flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                    data-tab="HISTORIAL">
+                <i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial
+            </button>
+        </div>
+
+        <!-- Contenedor de tarjetas -->
+        <div id="lista-contratos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Skeleton de carga -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/utils/pdf-contrato.js"></script>
+    <script src="../js/contratos-inquilino.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'contratos' });
+            LAYOUT.setPageTitle('Mis contratos');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'INQUILINO') {
+                window.location.replace('dashboard-arrendador.html');
+                return;
+            }
+            CONTRATOS_INQUILINO.init(usuario);
+        } catch (err) {
+            console.error('[CONTRATOS-INQUILINO] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>

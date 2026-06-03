@@ -4,7 +4,7 @@
 CREATE TYPE rol_usuario_enum AS ENUM ('ARRENDADOR', 'INQUILINO');
 CREATE TYPE tipo_propiedad_enum AS ENUM ('EDIFICIO', 'DEPARTAMENTO', 'CASA', 'LOCAL', 'TERRENO');
 CREATE TYPE frecuencia_enum AS ENUM ('MENSUAL', 'QUINCENAL', 'SEMANAL');
-CREATE TYPE estado_contrato_enum AS ENUM ('ACTIVO', 'FINALIZADO', 'TERMINADO');
+CREATE TYPE estado_contrato_enum AS ENUM ('PENDIENTE', 'RECHAZADO', 'ACTIVO', 'FINALIZADO', 'TERMINADO');
 CREATE TYPE estado_pago_enum AS ENUM ('PENDIENTE', 'PAGADO', 'VENCIDO');
 CREATE TYPE categoria_incidencia_enum AS ENUM ('PLOMERIA', 'ELECTRICIDAD', 'ESTRUCTURA', 'LIMPIEZA', 'SEGURIDAD', 'OTRO');
 CREATE TYPE estado_incidencia_enum AS ENUM ('ABIERTA', 'EN_PROCESO', 'RESUELTA');
@@ -14,112 +14,138 @@ CREATE TYPE tipo_notificacion_enum AS ENUM ('PAGO_PROXIMO', 'PAGO_VENCIDO', 'INC
 -- 2. TABLAS (con integración a auth.users)
 -- ======================================================
 
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
 -- Tabla usuarios (vinculada a auth.users mediante auth_user_id)
-CREATE TABLE usuarios (
-    usuario_id BIGSERIAL PRIMARY KEY,
-    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-    correo VARCHAR(255) NOT NULL,
-    rol rol_usuario_enum NOT NULL DEFAULT 'INQUILINO',
-    nombre_completo VARCHAR(100) NOT NULL,
-    telefono VARCHAR(20),
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    ultimo_acceso TIMESTAMPTZ,
-    activo BOOLEAN NOT NULL DEFAULT TRUE
+CREATE TABLE public.usuarios (
+  usuario_id bigint NOT NULL DEFAULT nextval('usuarios_usuario_id_seq'::regclass),
+  auth_user_id uuid UNIQUE,
+  correo character varying NOT NULL,
+  rol USER-DEFINED NOT NULL DEFAULT 'INQUILINO'::rol_usuario_enum,
+  nombre_completo character varying NOT NULL,
+  telefono character varying,
+  creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
+  ultimo_acceso timestamp with time zone,
+  activo boolean NOT NULL DEFAULT true,
+  CONSTRAINT usuarios_pkey PRIMARY KEY (usuario_id),
+  CONSTRAINT usuarios_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id)
 );
 
 -- Tabla propiedades
-CREATE TABLE propiedades (
-    propiedad_id BIGSERIAL PRIMARY KEY,
-    duenio_id BIGINT NOT NULL REFERENCES usuarios(usuario_id) ON DELETE CASCADE,
-    nombre VARCHAR(150) NOT NULL,
-    direccion TEXT NOT NULL,
-    tipo_propiedad tipo_propiedad_enum NOT NULL,
-    propiedad_padre_id BIGINT REFERENCES propiedades(propiedad_id) ON DELETE SET NULL,
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    activa BOOLEAN NOT NULL DEFAULT TRUE,
-    descripcion TEXT
+CREATE TABLE public.propiedades (
+  propiedad_id bigint NOT NULL DEFAULT nextval('propiedades_propiedad_id_seq'::regclass),
+  duenio_id bigint NOT NULL,
+  nombre character varying NOT NULL,
+  direccion text NOT NULL,
+  tipo_propiedad USER-DEFINED NOT NULL,
+  propiedad_padre_id bigint,
+  creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
+  activa boolean NOT NULL DEFAULT true,
+  descripcion text,
+  CONSTRAINT propiedades_pkey PRIMARY KEY (propiedad_id),
+  CONSTRAINT propiedades_duenio_id_fkey FOREIGN KEY (duenio_id) REFERENCES public.usuarios(usuario_id),
+  CONSTRAINT propiedades_propiedad_padre_id_fkey FOREIGN KEY (propiedad_padre_id) REFERENCES public.propiedades(propiedad_id)
 );
 
 -- Tabla inquilinos
-CREATE TABLE inquilinos (
-    inquilino_id BIGSERIAL PRIMARY KEY,
-    usuario_id BIGINT NOT NULL UNIQUE REFERENCES usuarios(usuario_id) ON DELETE CASCADE,
-    contacto_emergencia VARCHAR(100),
-    telefono_emergencia VARCHAR(20),
-    notas TEXT
+CREATE TABLE public.inquilinos (
+  inquilino_id bigint NOT NULL DEFAULT nextval('inquilinos_inquilino_id_seq'::regclass),
+  usuario_id bigint NOT NULL UNIQUE,
+  contacto_emergencia character varying,
+  telefono_emergencia character varying,
+  notas text,
+  CONSTRAINT inquilinos_pkey PRIMARY KEY (inquilino_id),
+  CONSTRAINT inquilinos_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id)
 );
 
 -- Tabla contratos
-CREATE TABLE contratos (
-    contrato_id BIGSERIAL PRIMARY KEY,
-    propiedad_id BIGINT NOT NULL REFERENCES propiedades(propiedad_id) ON DELETE RESTRICT,
-    inquilino_id BIGINT NOT NULL REFERENCES inquilinos(inquilino_id) ON DELETE RESTRICT,
-    fecha_inicio DATE NOT NULL,
-    fecha_fin DATE NOT NULL,
-    monto_renta NUMERIC(12,2) NOT NULL CHECK (monto_renta > 0),
-    frecuencia_pago frecuencia_enum NOT NULL DEFAULT 'MENSUAL',
-    estado estado_contrato_enum NOT NULL DEFAULT 'ACTIVO',
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    fecha_terminacion DATE,
-    observaciones TEXT,
-    CHECK (fecha_fin > fecha_inicio)
+CREATE TABLE public.contratos (
+  contrato_id bigint NOT NULL DEFAULT nextval('contratos_contrato_id_seq'::regclass),
+  propiedad_id bigint NOT NULL,
+  inquilino_id bigint NOT NULL,
+  fecha_inicio date NOT NULL,
+  fecha_fin date NOT NULL,
+  monto_renta numeric NOT NULL CHECK (monto_renta > 0::numeric),
+  frecuencia_pago USER-DEFINED NOT NULL DEFAULT 'MENSUAL'::frecuencia_enum,
+  estado USER-DEFINED NOT NULL DEFAULT 'PENDIENTE'::estado_contrato_enum,
+  creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
+  fecha_terminacion date,
+  observaciones text,
+  motivo_terminacion text,
+  beneficios text,
+  aceptado_en timestamp with time zone,
+  rechazado_en timestamp with time zone,
+  CONSTRAINT contratos_pkey PRIMARY KEY (contrato_id),
+  CONSTRAINT contratos_propiedad_id_fkey FOREIGN KEY (propiedad_id) REFERENCES public.propiedades(propiedad_id),
+  CONSTRAINT contratos_inquilino_id_fkey FOREIGN KEY (inquilino_id) REFERENCES public.inquilinos(inquilino_id)
 );
 CREATE UNIQUE INDEX idx_unico_activo_por_propiedad ON contratos (propiedad_id) WHERE estado = 'ACTIVO';
 
 -- Tabla calendario_pagos
-CREATE TABLE calendario_pagos (
-    calendario_id BIGSERIAL PRIMARY KEY,
-    contrato_id BIGINT NOT NULL REFERENCES contratos(contrato_id) ON DELETE CASCADE,
-    fecha_limite DATE NOT NULL,
-    monto_esperado NUMERIC(12,2) NOT NULL CHECK (monto_esperado > 0),
-    anio SMALLINT NOT NULL,
-    mes SMALLINT NOT NULL CHECK (mes BETWEEN 1 AND 12),
-    estado estado_pago_enum NOT NULL DEFAULT 'PENDIENTE',
-    fecha_pagado DATE,
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE public.calendario_pagos (
+  calendario_id bigint NOT NULL DEFAULT nextval('calendario_pagos_calendario_id_seq'::regclass),
+  contrato_id bigint NOT NULL,
+  fecha_limite date NOT NULL,
+  monto_esperado numeric NOT NULL CHECK (monto_esperado > 0::numeric),
+  anio smallint NOT NULL,
+  mes smallint NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  estado USER-DEFINED NOT NULL DEFAULT 'PENDIENTE'::estado_pago_enum,
+  fecha_pagado date,
+  actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT calendario_pagos_pkey PRIMARY KEY (calendario_id),
+  CONSTRAINT calendario_pagos_contrato_id_fkey FOREIGN KEY (contrato_id) REFERENCES public.contratos(contrato_id)
 );
 CREATE UNIQUE INDEX idx_unico_periodo_por_contrato ON calendario_pagos (contrato_id, anio, mes);
 
 -- Tabla registros_pago
-CREATE TABLE registros_pago (
-    pago_id BIGSERIAL PRIMARY KEY,
-    calendario_id BIGINT NOT NULL UNIQUE REFERENCES calendario_pagos(calendario_id) ON DELETE RESTRICT,
-    registrado_por_id BIGINT NOT NULL REFERENCES usuarios(usuario_id) ON DELETE RESTRICT,
-    fecha_recibido DATE NOT NULL,
-    monto_recibido NUMERIC(12,2) NOT NULL,
-    notas TEXT,
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE public.registros_pago (
+  pago_id bigint NOT NULL DEFAULT nextval('registros_pago_pago_id_seq'::regclass),
+  calendario_id bigint NOT NULL UNIQUE,
+  registrado_por_id bigint NOT NULL,
+  fecha_recibido date NOT NULL,
+  monto_recibido numeric NOT NULL,
+  notas text,
+  creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT registros_pago_pkey PRIMARY KEY (pago_id),
+  CONSTRAINT registros_pago_calendario_id_fkey FOREIGN KEY (calendario_id) REFERENCES public.calendario_pagos(calendario_id),
+  CONSTRAINT registros_pago_registrado_por_id_fkey FOREIGN KEY (registrado_por_id) REFERENCES public.usuarios(usuario_id)
 );
 
 -- Tabla incidencias
-CREATE TABLE incidencias (
-    incidencia_id BIGSERIAL PRIMARY KEY,
-    propiedad_id BIGINT NOT NULL REFERENCES propiedades(propiedad_id) ON DELETE CASCADE,
-    reportado_por_id BIGINT NOT NULL REFERENCES inquilinos(inquilino_id) ON DELETE CASCADE,
-    titulo VARCHAR(200) NOT NULL,
-    descripcion TEXT NOT NULL,
-    categoria categoria_incidencia_enum NOT NULL,
-    estado estado_incidencia_enum NOT NULL DEFAULT 'ABIERTA',
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resuelto_en TIMESTAMPTZ,
-    resolucion_notas TEXT
+CREATE TABLE public.incidencias (
+  incidencia_id bigint NOT NULL DEFAULT nextval('incidencias_incidencia_id_seq'::regclass),
+  propiedad_id bigint NOT NULL,
+  reportado_por_id bigint NOT NULL,
+  titulo character varying NOT NULL,
+  descripcion text NOT NULL,
+  categoria USER-DEFINED NOT NULL,
+  estado USER-DEFINED NOT NULL DEFAULT 'ABIERTA'::estado_incidencia_enum,
+  creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
+  resuelto_en timestamp with time zone,
+  resolucion_notas text,
+  CONSTRAINT incidencias_pkey PRIMARY KEY (incidencia_id),
+  CONSTRAINT incidencias_propiedad_id_fkey FOREIGN KEY (propiedad_id) REFERENCES public.propiedades(propiedad_id),
+  CONSTRAINT incidencias_reportado_por_id_fkey FOREIGN KEY (reportado_por_id) REFERENCES public.inquilinos(inquilino_id)
 );
 
 -- Tabla notificaciones
-CREATE TABLE notificaciones (
-    notificacion_id BIGSERIAL PRIMARY KEY,
-    usuario_id BIGINT NOT NULL REFERENCES usuarios(usuario_id) ON DELETE CASCADE,
-    titulo VARCHAR(200) NOT NULL,
-    mensaje TEXT NOT NULL,
-    tipo tipo_notificacion_enum NOT NULL,
-    leida BOOLEAN NOT NULL DEFAULT FALSE,
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    leida_en TIMESTAMPTZ,
-    metadatos JSONB
+CREATE TABLE public.notificaciones (
+  notificacion_id bigint NOT NULL DEFAULT nextval('notificaciones_notificacion_id_seq'::regclass),
+  usuario_id bigint NOT NULL,
+  titulo character varying NOT NULL,
+  mensaje text NOT NULL,
+  tipo USER-DEFINED NOT NULL,
+  leida boolean NOT NULL DEFAULT false,
+  creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  leida_en timestamp with time zone,
+  metadatos jsonb,
+  CONSTRAINT notificaciones_pkey PRIMARY KEY (notificacion_id),
+  CONSTRAINT notificaciones_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(usuario_id)
 );
 
 -- ======================================================

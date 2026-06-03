@@ -30,8 +30,8 @@ const LAYOUT = (() => {
     const NAV_ARRENDADOR = [
         { icon: ICONS.home,     label: 'Dashboard',     href: 'dashboard-arrendador.html', id: 'dashboard'    },
         { icon: ICONS.building, label: 'Propiedades',   href: 'propiedades.html',          id: 'propiedades'  },
-        { icon: ICONS.users,    label: 'Inquilinos',    href: 'inquilinos.html',           id: 'inquilinos'   },
-        { icon: ICONS.document, label: 'Contratos',     href: 'contratos.html',            id: 'contratos'    },
+        { icon: ICONS.users,    label: 'Inquilinos',    href: 'inquilinos-edificio.html',  id: 'inquilinos'   },
+        { icon: ICONS.document, label: 'Contratos',     href: 'gestion-contratos.html',            id: 'contratos'    },
         { icon: ICONS.credit,   label: 'Pagos',         href: 'pagos.html',                id: 'pagos'        },
         { icon: ICONS.chart,    label: 'Finanzas',      href: 'finanzas.html',             id: 'finanzas'     },
         { icon: ICONS.bell,     label: 'Incidencias',   href: 'incidencias.html',          id: 'incidencias'  },
@@ -39,7 +39,7 @@ const LAYOUT = (() => {
 
     const NAV_INQUILINO = [
         { icon: ICONS.home,     label: 'Mi Dashboard',  href: 'dashboard-inquilino.html',  id: 'dashboard'    },
-        { icon: ICONS.document, label: 'Mi Contrato',   href: 'mi-contrato.html',          id: 'contratos'    },
+        { icon: ICONS.document, label: 'Mi Contrato',   href: 'contratos-inquilinos.html',          id: 'contratos'    },
         { icon: ICONS.credit,   label: 'Mis Pagos',     href: 'mis-pagos.html',            id: 'pagos'        },
         { icon: ICONS.bell,     label: 'Incidencias',   href: 'mis-incidencias.html',      id: 'incidencias'  },
     ];

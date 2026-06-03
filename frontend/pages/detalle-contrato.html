@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalle de Contrato | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando detalle del contrato…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div class="min-w-0">
+                <a href="gestion-contratos.html"
+                   class="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-xs mb-1">
+                    <i class="fa-solid fa-arrow-left text-[10px]"></i> Volver a contratos
+                </a>
+                <h3 class="text-slate-900 font-bold text-xl truncate">
+                    Detalle del contrato
+                    <span id="folio-titulo" class="text-slate-400 text-base font-mono">#000000</span>
+                </h3>
+                <p id="estado-subtitle" class="text-slate-500 text-sm mt-0.5">—</p>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="btn-pdf"
+                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl
+                               bg-white border border-slate-200 hover:bg-slate-50
+                               text-slate-700 text-sm font-semibold transition">
+                    <i class="fa-solid fa-file-pdf text-red-500"></i> Descargar PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Estado: si está PENDIENTE → aviso destacado -->
+        <div id="aviso-pendiente" class="hidden mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 anim-fade-in-up">
+            <div class="flex items-start gap-3">
+                <i class="fa-solid fa-hourglass-half mt-1"></i>
+                <div class="text-sm">
+                    <p class="font-bold mb-0.5">Esperando aceptación del inquilino</p>
+                    <p class="text-amber-700/90 text-xs">
+                        El contrato aún no entra en vigor. El inquilino verá este contrato en su sección
+                        "Mis contratos" y podrá aceptarlo o rechazarlo.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            <!-- ╔ Columna principal: información del contrato ╗ -->
+            <div class="lg:col-span-2 space-y-5">
+
+                <!-- Información financiera + fechas -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 anim-fade-in-up anim-delay-1">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+                            <i class="fa-solid fa-coins text-blue-700 text-sm"></i>
+                        </div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Condiciones financieras</h4>
+                    </div>
+                    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                        <div>
+                            <dt class="text-slate-400 text-[10px] uppercase font-semibold mb-1">Renta</dt>
+                            <dd id="d-monto" class="text-blue-700 font-bold text-lg">—</dd>
+                        </div>
+                        <div>
+                            <dt class="text-slate-400 text-[10px] uppercase font-semibold mb-1">Frecuencia</dt>
+                            <dd id="d-frecuencia" class="text-slate-800 font-semibold">—</dd>
+                        </div>
+                        <div>
+                            <dt class="text-slate-400 text-[10px] uppercase font-semibold mb-1">Inicio</dt>
+                            <dd id="d-inicio" class="text-slate-800 font-semibold">—</dd>
+                        </div>
+                        <div>
+                            <dt class="text-slate-400 text-[10px] uppercase font-semibold mb-1">Término</dt>
+                            <dd id="d-fin" class="text-slate-800 font-semibold">—</dd>
+                        </div>
+                    </dl>
+
+                    <!-- Barra de progreso -->
+                    <div id="bloque-progreso" class="hidden mt-5">
+                        <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+                            <span><i class="fa-solid fa-chart-line mr-1"></i>Progreso del contrato</span>
+                            <span id="d-progreso-pct" class="font-bold text-slate-700">0%</span>
+                        </div>
+                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div id="d-progreso-bar" class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-700" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inmueble -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 anim-fade-in-up anim-delay-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-house text-slate-700 text-sm"></i>
+                        </div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Inmueble arrendado</h4>
+                    </div>
+                    <p id="d-prop-nombre" class="text-slate-900 font-bold text-base mb-0.5">—</p>
+                    <p id="d-prop-direccion" class="text-slate-500 text-sm">—</p>
+                    <p id="d-prop-tipo" class="mt-2 inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase">—</p>
+                </div>
+
+                <!-- Inquilino -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 anim-fade-in-up anim-delay-3">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center">
+                            <i class="fa-solid fa-user text-purple-700 text-sm"></i>
+                        </div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Datos del inquilino</h4>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="d-inq-avatar" class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-base">?</div>
+                        <div class="flex-1 min-w-0">
+                            <p id="d-inq-nombre" class="text-slate-900 font-bold text-sm truncate">—</p>
+                            <p id="d-inq-correo" class="text-slate-500 text-xs truncate">
+                                <i class="fa-solid fa-envelope text-[10px] mr-1"></i><span>—</span>
+                            </p>
+                            <p id="d-inq-tel" class="text-slate-500 text-xs truncate">
+                                <i class="fa-solid fa-phone text-[10px] mr-1"></i><span>—</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beneficios y observaciones -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 anim-fade-in-up anim-delay-4">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center">
+                            <i class="fa-solid fa-list-check text-green-700 text-sm"></i>
+                        </div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Beneficios y observaciones</h4>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold mb-1">Beneficios incluidos</p>
+                            <p id="d-beneficios" class="text-slate-700 text-sm whitespace-pre-line">—</p>
+                        </div>
+                        <div class="pt-3 border-t border-slate-100">
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold mb-1">Observaciones particulares</p>
+                            <p id="d-observaciones" class="text-slate-700 text-sm whitespace-pre-line">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cancelación, si aplica -->
+                <div id="bloque-cancelacion" class="hidden bg-orange-50 border border-orange-200 rounded-2xl p-5 anim-fade-in-up">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-ban text-orange-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-orange-900 font-bold text-sm">Contrato cancelado anticipadamente</p>
+                            <p id="d-fecha-terminacion" class="text-orange-700 text-xs mt-0.5">—</p>
+                            <p class="mt-2 text-[11px] text-orange-800">
+                                <span class="font-semibold">Motivo:</span>
+                                <span id="d-motivo-cancel">—</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ╔ Columna lateral: acciones y resumen ╗ -->
+            <aside class="lg:col-span-1 space-y-4 anim-fade-in-up anim-delay-3">
+
+                <div class="sticky top-20 space-y-4">
+
+                    <!-- Banner de estado -->
+                    <div id="banner-estado" class="bg-gradient-to-br from-[#0c1f4a] via-[#0f2557] to-[#1a3680] rounded-2xl p-5 text-white shadow-xl">
+                        <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider mb-2">
+                            <i class="fa-solid fa-circle-info mr-1"></i> Estado actual
+                        </p>
+                        <p id="banner-estado-label" class="font-extrabold text-2xl">—</p>
+                        <p id="banner-estado-desc" class="text-blue-200/80 text-xs mt-1">—</p>
+                    </div>
+
+                    <!-- Estadísticas de pagos (solo si activo) -->
+                    <div id="bloque-pagos" class="hidden bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                        <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-3">
+                            <i class="fa-solid fa-receipt mr-1"></i> Pagos
+                        </p>
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="rounded-xl bg-slate-50 px-2 py-2">
+                                <p id="pagos-total" class="text-slate-800 font-bold text-lg">—</p>
+                                <p class="text-slate-400 text-[10px] uppercase font-semibold">Total</p>
+                            </div>
+                            <div class="rounded-xl bg-green-50 px-2 py-2">
+                                <p id="pagos-pagados" class="text-green-700 font-bold text-lg">—</p>
+                                <p class="text-green-500 text-[10px] uppercase font-semibold">Pagados</p>
+                            </div>
+                            <div class="rounded-xl bg-red-50 px-2 py-2">
+                                <p id="pagos-vencidos" class="text-red-700 font-bold text-lg">—</p>
+                                <p class="text-red-500 text-[10px] uppercase font-semibold">Vencidos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones del arrendador -->
+                    <div id="bloque-acciones" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                        <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-3">
+                            <i class="fa-solid fa-bolt mr-1"></i> Acciones
+                        </p>
+                        <div id="acciones-container" class="space-y-2">
+                            <!-- Render dinámico según estado -->
+                        </div>
+                    </div>
+
+                    <!-- Recordatorio sobre RN-08 -->
+                    <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100 text-xs leading-relaxed">
+                        <p class="text-blue-900 font-bold mb-1">
+                            <i class="fa-solid fa-shield-halved mr-1"></i> Importante
+                        </p>
+                        <p class="text-slate-600">
+                            Un contrato activo no puede modificarse en sus condiciones financieras (RN-08).
+                            Si necesitas cambiar el monto o las fechas, finaliza el actual y crea uno nuevo.
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/utils/pdf-contrato.js"></script>
+    <script src="../js/detalle-contrato.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'contratos' });
+            LAYOUT.setPageTitle('Detalle de contrato');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+            DETALLE_CONTRATO.init(usuario);
+        } catch (err) {
+            console.error('[DETALLE-CONTRATO] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>

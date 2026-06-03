@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inquilinos | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando inquilinos…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- ── Cabecera ── -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Inquilinos</h3>
+                <p id="contexto-edificio" class="text-slate-500 text-sm mt-0.5">Visualiza el comportamiento financiero de tus inquilinos.</p>
+            </div>
+            <div class="flex gap-2">
+                <select id="filtro-edificio" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm">
+                    <option value="">Todos los edificios</option>
+                </select>
+                <select id="filtro-semaforo" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm">
+                    <option value="">Todos</option>
+                    <option value="VERDE">🟢 Excelente</option>
+                    <option value="AMARILLO">🟡 Regular</option>
+                    <option value="ROJO">🔴 En riesgo</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ── Resumen de semáforos ── -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-1">
+                <div class="inline-flex items-center gap-2 mb-1">
+                    <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                    <p class="text-slate-500 text-xs font-semibold uppercase">Excelente</p>
+                </div>
+                <p id="m-verdes" class="text-green-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-2">
+                <div class="inline-flex items-center gap-2 mb-1">
+                    <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                    <p class="text-slate-500 text-xs font-semibold uppercase">Regular</p>
+                </div>
+                <p id="m-amarillos" class="text-yellow-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-3">
+                <div class="inline-flex items-center gap-2 mb-1">
+                    <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                    <p class="text-slate-500 text-xs font-semibold uppercase">En riesgo</p>
+                </div>
+                <p id="m-rojos" class="text-red-600 font-bold text-2xl">—</p>
+            </div>
+        </div>
+
+        <!-- ── Grid de tarjetas inquilinos ── -->
+        <div id="lista-inquilinos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
+                <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/inquilinos-edificio.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'inquilinos' });
+            LAYOUT.setPageTitle('Inquilinos');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+            INQUILINOS_EDIFICIO.init(usuario);
+        } catch (err) {
+            console.error('[INQUILINOS] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>
