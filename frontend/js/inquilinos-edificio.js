@@ -289,7 +289,7 @@ const INQUILINOS_EDIFICIO = (() => {
     // ──────────────────────────────────────────────────────────────
     function _despachar(action, id) {
         if (action === 'historial') return _abrirHistorial(id);
-        if (action === 'contrato')  return window.location.href = `contratos.html?contratoId=${id}`;
+        if (action === 'contrato')  return window.location.href = `detalle-contrato.html?contratoId=${id}`;
     }
 
     async function _abrirHistorial(contratoId) {
@@ -339,7 +339,7 @@ const INQUILINOS_EDIFICIO = (() => {
                             ${h.fecha_terminacion ? `<div class="col-span-2"><span class="font-medium">Terminación anticipada:</span> ${fmt(h.fecha_terminacion)}</div>` : ''}
                             <div class="col-span-2"><span class="font-medium">Renta:</span> ${fmtMoney(h.monto_renta)}</div>
                         </div>
-                        <a href="contratos.html?contratoId=${h.contrato_id}" class="inline-block mt-2 text-xs text-blue-600 font-semibold hover:underline">
+                        <a href="detalle-contrato.html?contratoId=${h.contrato_id}" class="inline-block mt-2 text-xs text-blue-600 font-semibold hover:underline">
                             Ver contrato →
                         </a>
                     </div>
