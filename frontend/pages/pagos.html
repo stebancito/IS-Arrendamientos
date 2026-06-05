@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Valida pagos reportados, registra pagos manuales y consulta el historial de tus propiedades." />
+    <meta name="theme-color" content="#0f2557" />
     <title>Gestión de Pagos | Arrendamientos App</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,9 +21,9 @@
 <body class="font-sans antialiased bg-slate-50">
 
     <!-- Loader inicial -->
-    <div id="initial-loader"
+    <div id="initial-loader" role="status" aria-live="polite"
          class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4" aria-hidden="true"></div>
         <p class="text-blue-200 text-sm font-medium">Cargando gestión de pagos…</p>
     </div>
 
@@ -36,6 +38,13 @@
                     Valida los pagos reportados por inquilinos, registra pagos manuales y consulta el historial.
                 </p>
             </div>
+            <a href="finanzas.html"
+               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
+                      bg-white border border-slate-200 hover:bg-slate-100
+                      transition text-sm font-medium self-start sm:self-auto">
+                <i class="fa-solid fa-chart-pie text-xs" aria-hidden="true"></i>
+                Ver finanzas
+            </a>
         </div>
 
         <!-- ── Métricas rápidas ── -->
@@ -82,29 +91,29 @@
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5 anim-fade-in-up anim-delay-2">
             <div class="flex flex-col lg:flex-row lg:items-center gap-3">
                 <!-- Tabs -->
-                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0">
-                    <button class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0" role="tablist" aria-label="Vistas de pagos">
+                    <button type="button" role="tab" class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
                             data-tab="validar">
-                        <i class="fa-solid fa-inbox mr-1"></i> Por validar
+                        <i class="fa-solid fa-inbox mr-1" aria-hidden="true"></i> Por validar
                     </button>
-                    <button class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                    <button type="button" role="tab" class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                             data-tab="registrar">
-                        <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Registrar
+                        <i class="fa-solid fa-hand-holding-dollar mr-1" aria-hidden="true"></i> Registrar
                     </button>
-                    <button class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                    <button type="button" role="tab" class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                             data-tab="historial">
-                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial
+                        <i class="fa-solid fa-clock-rotate-left mr-1" aria-hidden="true"></i> Historial
                     </button>
                 </div>
 
                 <!-- Filtros (solo para historial) -->
                 <div class="flex flex-1 gap-2">
                     <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input id="f-buscar" type="text" placeholder="Buscar inquilino o propiedad…"
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+                        <input id="f-buscar" type="text" placeholder="Buscar inquilino o propiedad…" aria-label="Buscar por inquilino o propiedad"
                                class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
                     </div>
-                    <select id="f-estado" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                    <select id="f-estado" aria-label="Filtrar por estado de pago" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
                         <option value="">Todos</option>
                         <option value="PAGADO">Pagados</option>
                         <option value="PENDIENTE">Pendientes</option>
@@ -116,7 +125,7 @@
         </div>
 
         <!-- ── Contenido dinámico de la tab activa ── -->
-        <div id="tab-content" class="anim-fade-in-up anim-delay-3">
+        <div id="tab-content" class="anim-fade-in-up anim-delay-3" role="status" aria-label="Cargando pagos">
             <!-- Skeleton de carga -->
             <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse space-y-3">
                 <div class="h-4 bg-slate-200 rounded w-1/3"></div>
@@ -153,8 +162,29 @@
             PAGOS_ARRENDADOR.init(usuario);
         } catch (err) {
             console.error('[PAGOS] init error:', err);
+            mostrarErrorCarga('tab-content');
         }
     })();
+
+    // Reemplaza el esqueleto por un mensaje de error con opción de reintentar.
+    function mostrarErrorCarga(contenedorId) {
+        const loader = document.getElementById('initial-loader');
+        if (loader) loader.remove();
+        const cont = document.getElementById(contenedorId) || document.body;
+        cont.removeAttribute('role');
+        cont.innerHTML = `
+            <div role="alert" class="bg-white rounded-2xl border border-red-100 shadow-sm p-8 text-center">
+                <div class="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl" aria-hidden="true"></i>
+                </div>
+                <p class="text-slate-800 font-semibold mb-1">No pudimos cargar la página</p>
+                <p class="text-slate-400 text-sm mb-4">Revisa tu conexión e inténtalo de nuevo.</p>
+                <button type="button" onclick="location.reload()"
+                        class="px-4 py-2 rounded-xl bg-[#0f2557] text-white text-sm font-semibold hover:bg-[#15346f] transition">
+                    Reintentar
+                </button>
+            </div>`;
+    }
     </script>
 </body>
 </html>
