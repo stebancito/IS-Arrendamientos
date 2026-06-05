@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pagos | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando pagos…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Motor de pagos</h3>
+                <p class="text-slate-500 text-sm mt-0.5">
+                    Registra la recepción de rentas y da seguimiento al estado de cada periodo.
+                </p>
+            </div>
+            <a href="gestion-contratos.html"
+               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
+                      bg-white border border-slate-200 hover:bg-slate-100
+                      transition text-sm font-medium self-start sm:self-auto">
+                <i class="fa-solid fa-file-contract text-xs"></i>
+                Ir a contratos
+            </a>
+        </div>
+
+        <!-- Métricas globales (montos) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Esperado</p>
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <i class="fa-solid fa-coins text-blue-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-esperado" class="text-slate-800 font-bold text-lg">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Cobrado</p>
+                    <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-check text-green-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-cobrado" class="text-green-600 font-bold text-lg">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pendiente</p>
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <i class="fa-solid fa-hourglass-half text-amber-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-pendiente" class="text-amber-600 font-bold text-lg">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Vencido</p>
+                    <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-vencido" class="text-red-600 font-bold text-lg">—</p>
+            </div>
+        </div>
+
+        <!-- Cuerpo: selector de contratos + calendario -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+
+            <!-- Selector lateral de contratos -->
+            <aside class="lg:col-span-1 anim-fade-in-up anim-delay-2">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-3">
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest px-2 mb-2">
+                        Contratos
+                    </p>
+                    <div id="lista-contratos-pago" class="space-y-2 max-h-[70vh] overflow-y-auto custom-scrollbar pr-0.5">
+                        <!-- Skeleton -->
+                        <div class="animate-pulse px-3 py-3 rounded-xl border border-slate-100">
+                            <div class="h-3 bg-slate-200 rounded w-2/3 mb-2"></div>
+                            <div class="h-1.5 bg-slate-200 rounded w-full"></div>
+                        </div>
+                        <div class="animate-pulse px-3 py-3 rounded-xl border border-slate-100">
+                            <div class="h-3 bg-slate-200 rounded w-2/3 mb-2"></div>
+                            <div class="h-1.5 bg-slate-200 rounded w-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Panel del calendario de pagos -->
+            <div id="panel-calendario" class="lg:col-span-2 anim-fade-in-up anim-delay-3">
+                <div class="bg-white rounded-2xl border border-slate-100 p-10 animate-pulse">
+                    <div class="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
+                    <div class="h-3 bg-slate-200 rounded w-2/3 mb-2"></div>
+                    <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/pagos.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'pagos' });
+            LAYOUT.setPageTitle('Motor de pagos');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+            PAGOS.init(usuario);
+        } catch (err) {
+            console.error('[PAGOS] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>

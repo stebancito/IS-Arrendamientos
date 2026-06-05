@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finanzas | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js (Dev 5) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando finanzas…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- Cabecera -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Dashboard financiero</h3>
+                <p class="text-slate-500 text-sm mt-0.5">
+                    Flujo de efectivo, cobranza y calificación del comportamiento de tus inquilinos.
+                </p>
+            </div>
+            <a href="pagos.html"
+               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
+                      bg-white border border-slate-200 hover:bg-slate-100
+                      transition text-sm font-medium self-start sm:self-auto">
+                <i class="fa-solid fa-money-bill-wave text-xs"></i>
+                Registrar pagos
+            </a>
+        </div>
+
+        <!-- Métricas financieras -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Ingresos</p>
+                    <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                        <i class="fa-solid fa-sack-dollar text-green-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="f-ingresos" class="text-green-600 font-bold text-lg">—</p>
+                <p class="text-slate-400 text-xs mt-0.5">cobrado total</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pendiente</p>
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <i class="fa-solid fa-hourglass-half text-amber-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="f-pendiente" class="text-amber-600 font-bold text-lg">—</p>
+                <p class="text-slate-400 text-xs mt-0.5">por cobrar</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Vencido</p>
+                    <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="f-vencido" class="text-red-600 font-bold text-lg">—</p>
+                <p class="text-slate-400 text-xs mt-0.5">en mora</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Tasa de cobro</p>
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <i class="fa-solid fa-percent text-blue-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="f-tasa" class="text-blue-600 font-bold text-lg">—</p>
+                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                    <div id="f-tasa-bar" class="h-full bg-blue-500 rounded-full transition-all duration-700" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+            <!-- Flujo de efectivo -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 anim-fade-in-up anim-delay-2">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Flujo de efectivo</h4>
+                        <p class="text-slate-400 text-xs">Esperado vs. cobrado por mes (últimos 12)</p>
+                    </div>
+                    <i class="fa-solid fa-chart-column text-slate-300"></i>
+                </div>
+                <div class="relative h-64 sm:h-72">
+                    <canvas id="chart-flujo"></canvas>
+                </div>
+            </div>
+
+            <!-- Distribución de estados -->
+            <div class="lg:col-span-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 anim-fade-in-up anim-delay-3">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Estado de pagos</h4>
+                        <p class="text-slate-400 text-xs">Distribución de cuotas</p>
+                    </div>
+                    <i class="fa-solid fa-chart-pie text-slate-300"></i>
+                </div>
+                <div class="relative h-64 sm:h-72">
+                    <canvas id="chart-estados"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calificación de comportamiento financiero -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden anim-fade-in-up anim-delay-3">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h4 class="text-slate-800 font-semibold text-sm">Comportamiento financiero de inquilinos</h4>
+                    <p class="text-slate-400 text-xs">Puntaje 0–100 según cumplimiento y morosidad</p>
+                </div>
+                <i class="fa-solid fa-ranking-star text-slate-300"></i>
+            </div>
+            <div id="tabla-comportamiento" class="p-2 divide-y divide-slate-50">
+                <!-- Skeleton -->
+                <div class="flex items-center gap-3 px-4 py-3 animate-pulse">
+                    <div class="w-12 h-12 rounded-full bg-slate-200"></div>
+                    <div class="flex-1">
+                        <div class="h-3 bg-slate-200 rounded w-1/3 mb-2"></div>
+                        <div class="h-2.5 bg-slate-200 rounded w-1/4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/finanzas.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'finanzas' });
+            LAYOUT.setPageTitle('Dashboard financiero');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+            FINANZAS.init(usuario);
+        } catch (err) {
+            console.error('[FINANZAS] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>
