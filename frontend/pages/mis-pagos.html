@@ -70,20 +70,29 @@
 
                         <!-- Tabs de vista -->
                         <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0" role="tablist" aria-label="Vistas de mis pagos">
-                            <button type="button" role="tab" class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                            <button type="button" role="tab" title="Tus cuotas mes a mes en un calendario"
+                                    class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
                                     data-tab="calendario">
                                 <i class="fa-solid fa-calendar-days mr-1" aria-hidden="true"></i> Calendario
                             </button>
-                            <button type="button" role="tab" class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            <button type="button" role="tab" title="Tus cuotas en forma de lista"
+                                    class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                                     data-tab="lista">
                                 <i class="fa-solid fa-list mr-1" aria-hidden="true"></i> Lista
                             </button>
-                            <button type="button" role="tab" class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            <button type="button" role="tab" title="Pagos que ya reportaste o que fueron confirmados"
+                                    class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                                     data-tab="historial">
                                 <i class="fa-solid fa-clock-rotate-left mr-1" aria-hidden="true"></i> Historial
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <!-- Hint de acción: cómo reportar un pago (lo que más confunde al inquilino) -->
+                <div class="flex items-start gap-2 text-[11px] text-slate-500 px-1 anim-fade-in-up anim-delay-2">
+                    <i class="fa-solid fa-circle-info text-blue-400 mt-0.5" aria-hidden="true"></i>
+                    <p>Toca una cuota <strong class="text-slate-600">pendiente</strong> del calendario para <strong class="text-slate-600">reportar tu pago</strong>. Quedará como <strong class="text-blue-600">reportado</strong> hasta que el arrendador lo confirme.</p>
                 </div>
 
                 <!-- Contenido dinámico de la tab activa -->

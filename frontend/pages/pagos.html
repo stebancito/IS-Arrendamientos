@@ -92,15 +92,18 @@
             <div class="flex flex-col lg:flex-row lg:items-center gap-3">
                 <!-- Tabs -->
                 <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0" role="tablist" aria-label="Vistas de pagos">
-                    <button type="button" role="tab" class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                    <button type="button" role="tab" title="Pagos reportados por inquilinos, pendientes de tu aprobación"
+                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
                             data-tab="validar">
                         <i class="fa-solid fa-inbox mr-1" aria-hidden="true"></i> Por validar
                     </button>
-                    <button type="button" role="tab" class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                    <button type="button" role="tab" title="Registra un pago recibido en efectivo o fuera de la plataforma"
+                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                             data-tab="registrar">
                         <i class="fa-solid fa-hand-holding-dollar mr-1" aria-hidden="true"></i> Registrar
                     </button>
-                    <button type="button" role="tab" class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                    <button type="button" role="tab" title="Todos los pagos ya confirmados de tus propiedades"
+                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                             data-tab="historial">
                         <i class="fa-solid fa-clock-rotate-left mr-1" aria-hidden="true"></i> Historial
                     </button>
@@ -122,6 +125,12 @@
                     </select>
                 </div>
             </div>
+        </div>
+
+        <!-- Hint que explica las pestañas de un vistazo -->
+        <div class="flex items-start gap-2 text-[11px] text-slate-500 mb-4 px-1 anim-fade-in-up anim-delay-2">
+            <i class="fa-solid fa-circle-info text-blue-400 mt-0.5" aria-hidden="true"></i>
+            <p><strong class="text-slate-600">Por validar</strong>: pagos que tus inquilinos reportaron y esperan tu aprobación · <strong class="text-slate-600">Registrar</strong>: anota un pago en efectivo o fuera de la app · <strong class="text-slate-600">Historial</strong>: todos los pagos confirmados.</p>
         </div>
 
         <!-- ── Contenido dinámico de la tab activa ── -->
