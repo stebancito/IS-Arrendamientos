@@ -1,391 +1,438 @@
 // ================================================================
-// inquilinos-edificio.js  –  Inquilinos del arrendador con semáforo
+// inquilinos-edificio.js  –  Módulo Dev 5 (Evaluación de Inquilinos)
 // ================================================================
-// Implementa:
-//   - RF-11/12/13: Visualizar inquilinos vinculados a las propiedades.
-//   - "Semáforo de Confianza" (Verde / Amarillo / Rojo) calculado a partir
-//      del calendario de pagos del contrato activo.
+// Responsabilidades:
+//   - RF-31    : Calcular porcentaje de pagos a tiempo por inquilino.
+//   - RF-32    : Histórico de pagos vencidos por inquilino.
+//   - RF-33    : Generar calificación/semáforo de confianza.
+//   - RN-18    : Solo contratos ACTIVO / FINALIZADO / TERMINADO.
+//   - RN-19    : Evaluación solo si hay al menos 1 pago PAGADO o VENCIDO.
 //
-// ⚙ Reglas del semáforo:
-//   VERDE   → 0 pagos VENCIDO  AND  ≥ 90% pagados a tiempo
-//   AMARILLO→ ≤ 2 pagos VENCIDO o entre 60-89% cumplimiento
-//   ROJO    → > 2 vencidos o cumplimiento < 60%
+// Consume la función RPC de Supabase:
+//   obtener_evaluaciones_inquilinos_arrendador(p_duenio_id)
 //
-// ⚙ Consultas jerárquicas:
-//   .from('propiedades').eq('duenio_id', uid)
-//   - Edificios:    .eq('tipo_propiedad','EDIFICIO').is('propiedad_padre_id', null)
-//   - Departamentos de un edificio:
-//     .eq('propiedad_padre_id', edificioId)
+// Patrones:
+//   - Listado con búsqueda y filtro por semáforo.
+//   - Click en tarjeta → modal con detalle de evaluación.
+//   - Semáforo visual (VERDE / AMARILLO / ROJO / SIN_DATOS).
+//
+// Dependencias:
+//   supabase-config.js · auth.js · layout.js · toast.js
 // ================================================================
 
 const INQUILINOS_EDIFICIO = (() => {
 
     let _usuario = null;
-    let _inquilinos = [];   // estructura enriquecida
-    let _edificios  = [];
+    let _inquilinos = [];    // lista enriquecida con evaluación
 
+    // ──────────────────────────────────────────────────────────────
+    // INIT
     // ──────────────────────────────────────────────────────────────
     async function init(usuario) {
         _usuario = usuario;
-        _asegurarModalHistorial();
 
-        // Soportar ?edificioId= en URL para filtrar directamente
-        const params = new URLSearchParams(window.location.search);
-        const edificioPreset = params.get('edificioId');
-
-        await _cargarEdificios();
-        if (edificioPreset) {
-            const sel = document.getElementById('filtro-edificio');
-            if (sel) sel.value = edificioPreset;
+        // Marcar pagos vencidos
+        try {
+            await window.supabaseClient.rpc('actualizar_pagos_vencidos');
+        } catch (err) {
+            console.warn('[INQUILINOS] No se pudo ejecutar actualizar_pagos_vencidos:', err);
         }
+
         await _cargarInquilinos();
-
         _bindFiltros();
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // 1. Cargar edificios del arrendador (para el filtro superior)
-    // ──────────────────────────────────────────────────────────────
-    async function _cargarEdificios() {
-        const { data } = await window.supabaseClient
-            .from('propiedades')
-            .select('propiedad_id, nombre')
-            .eq('duenio_id', _usuario.usuario_id)
-            .eq('tipo_propiedad', 'EDIFICIO')
-            .eq('activa', true)
-            .is('propiedad_padre_id', null)
-            .order('nombre');
-        _edificios = data || [];
-        const sel = document.getElementById('filtro-edificio');
-        if (sel) {
-            sel.innerHTML = `<option value="">Todos los edificios</option>` +
-                _edificios.map(e => `<option value="${e.propiedad_id}">${esc(e.nombre)}</option>`).join('');
-        }
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // 2. Cargar contratos + inquilinos + pagos
-    // ──────────────────────────────────────────────────────────────
-    async function _cargarInquilinos() {
-        // Propiedades del arrendador (incluyendo hijas)
-        const { data: props } = await window.supabaseClient
-            .from('propiedades')
-            .select('propiedad_id, nombre, direccion, propiedad_padre_id, tipo_propiedad')
-            .eq('duenio_id', _usuario.usuario_id)
-            .eq('activa', true);
-        const propIds = (props || []).map(p => p.propiedad_id);
-        if (!propIds.length) {
-            _inquilinos = [];
-            _renderResumen(); _renderLista();
-            return;
-        }
-        const mapProp = {};
-        (props || []).forEach(p => { mapProp[p.propiedad_id] = p; });
-
-        // Contratos activos en estas propiedades + datos del inquilino y usuario
-        const { data: contratos } = await window.supabaseClient
-            .from('contratos')
-            .select(`
-                contrato_id, propiedad_id, inquilino_id, fecha_inicio, fecha_fin, monto_renta, estado,
-                inquilinos (
-                    inquilino_id, contacto_emergencia, telefono_emergencia,
-                    usuarios ( usuario_id, nombre_completo, correo, telefono )
-                )
-            `)
-            .in('propiedad_id', propIds)
-            .eq('estado', 'ACTIVO');
-
-        const contratoIds = (contratos || []).map(c => c.contrato_id);
-        // Pagos de esos contratos
-        let mapPagos = {};
-        if (contratoIds.length) {
-            const { data: pagos } = await window.supabaseClient
-                .from('calendario_pagos')
-                .select('contrato_id, estado, fecha_limite, fecha_pagado')
-                .in('contrato_id', contratoIds);
-            (pagos || []).forEach(p => {
-                if (!mapPagos[p.contrato_id]) mapPagos[p.contrato_id] = [];
-                mapPagos[p.contrato_id].push(p);
-            });
-        }
-
-        // Armar lista enriquecida
-        _inquilinos = (contratos || []).map(c => {
-            const pagos = mapPagos[c.contrato_id] || [];
-            const semaforo = _calcularSemaforo(pagos);
-            const prop = mapProp[c.propiedad_id] || {};
-            return {
-                contrato_id: c.contrato_id,
-                propiedad_id: c.propiedad_id,
-                propiedad_nombre: prop.nombre,
-                propiedad_direccion: prop.direccion,
-                edificio_id: prop.propiedad_padre_id,
-                fecha_inicio: c.fecha_inicio,
-                fecha_fin: c.fecha_fin,
-                monto_renta: c.monto_renta,
-                nombre: c.inquilinos?.usuarios?.nombre_completo || 'Inquilino',
-                correo: c.inquilinos?.usuarios?.correo || '',
-                telefono: c.inquilinos?.usuarios?.telefono || '',
-                contacto_emergencia: c.inquilinos?.contacto_emergencia || '',
-                telefono_emergencia: c.inquilinos?.telefono_emergencia || '',
-                inquilino_id: c.inquilino_id,
-                pagos,
-                semaforo,
-            };
-        });
-
-        _renderResumen();
+        _renderMetricas();
         _renderLista();
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Cálculo del semáforo de confianza
+    // Cargar evaluaciones masivas desde RPC
     // ──────────────────────────────────────────────────────────────
-    function _calcularSemaforo(pagos) {
-        if (!pagos.length) return { nivel: 'AMARILLO', cumplimiento: null, vencidos: 0, total: 0 };
-        const total = pagos.length;
-        const vencidos = pagos.filter(p => p.estado === 'VENCIDO').length;
-        const pagados  = pagos.filter(p => p.estado === 'PAGADO').length;
-        const cumpl = Math.round((pagados / total) * 100);
+    async function _cargarInquilinos() {
+        const { data, error } = await window.supabaseClient
+            .rpc('obtener_evaluaciones_inquilinos_arrendador', {
+                p_duenio_id: _usuario.usuario_id
+            });
 
-        let nivel = 'VERDE';
-        if (vencidos > 2 || cumpl < 60) nivel = 'ROJO';
-        else if (vencidos >= 1 || cumpl < 90) nivel = 'AMARILLO';
+        if (error) {
+            console.error('[INQUILINOS] Error cargando evaluaciones:', error);
+            _inquilinos = [];
+            return;
+        }
 
-        return { nivel, cumplimiento: cumpl, vencidos, total };
+        _inquilinos = data || [];
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Resumen de semáforos
+    // Métricas del header
     // ──────────────────────────────────────────────────────────────
-    function _renderResumen() {
-        const aplicables = _filtrar(_inquilinos);
-        const v = aplicables.filter(i => i.semaforo.nivel === 'VERDE').length;
-        const a = aplicables.filter(i => i.semaforo.nivel === 'AMARILLO').length;
-        const r = aplicables.filter(i => i.semaforo.nivel === 'ROJO').length;
-        document.getElementById('m-verdes').textContent    = v;
-        document.getElementById('m-amarillos').textContent = a;
-        document.getElementById('m-rojos').textContent     = r;
+    function _renderMetricas() {
+        const total   = _inquilinos.length;
+        const verdes  = _inquilinos.filter(i => i.nivel === 'VERDE').length;
+        const amarillos = _inquilinos.filter(i => i.nivel === 'AMARILLO').length;
+        const rojos   = _inquilinos.filter(i => i.nivel === 'ROJO').length;
+        const sinDatos = _inquilinos.filter(i => i.nivel === 'SIN_DATOS').length;
+
+        _set('m-total',      total);
+        _set('m-verdes',     verdes);
+        _set('m-amarillos',  amarillos);
+        _set('m-rojos',      rojos);
+        _set('m-sin-datos',  sinDatos);
     }
 
     // ──────────────────────────────────────────────────────────────
     // Filtros
     // ──────────────────────────────────────────────────────────────
     function _bindFiltros() {
-        document.getElementById('filtro-edificio')?.addEventListener('change', () => { _renderResumen(); _renderLista(); });
-        document.getElementById('filtro-semaforo')?.addEventListener('change', () => { _renderResumen(); _renderLista(); });
+        ['f-buscar', 'f-nivel'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input',  _renderLista);
+            document.getElementById(id)?.addEventListener('change', _renderLista);
+        });
     }
 
-    function _filtrar(lista) {
-        const edif = document.getElementById('filtro-edificio')?.value || '';
-        const sem  = document.getElementById('filtro-semaforo')?.value || '';
-        return lista
-            .filter(i => !edif || String(i.edificio_id) === edif || String(i.propiedad_id) === edif)
-            .filter(i => !sem || i.semaforo.nivel === sem);
+    function _aplicarFiltros() {
+        const q     = (document.getElementById('f-buscar')?.value || '').toLowerCase().trim();
+        const nivel = document.getElementById('f-nivel')?.value || '';
+
+        return _inquilinos.filter(i => {
+            if (nivel && i.nivel !== nivel) return false;
+            if (!q) return true;
+            const nombre = (i.nombre_completo || '').toLowerCase();
+            const correo = (i.correo || '').toLowerCase();
+            const prop   = (i.propiedad_nombre || '').toLowerCase();
+            return nombre.includes(q) || correo.includes(q) || prop.includes(q);
+        });
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Render de tarjetas
+    // Render del listado
     // ──────────────────────────────────────────────────────────────
     function _renderLista() {
         const cont = document.getElementById('lista-inquilinos');
-        const lista = _filtrar(_inquilinos);
+        if (!cont) return;
+
+        const lista = _aplicarFiltros();
+
         if (!lista.length) {
             cont.innerHTML = `
-                <div class="col-span-full p-10 bg-white rounded-2xl border border-slate-100 text-center">
-                    <p class="text-slate-700 font-semibold mb-1">No hay inquilinos</p>
-                    <p class="text-slate-400 text-sm">No se encontraron inquilinos con los filtros actuales.</p>
+                <div class="col-span-full p-12 bg-white rounded-2xl border border-slate-100 text-center">
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-users-slash text-blue-400 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-700 font-semibold mb-1">Sin inquilinos</p>
+                    <p class="text-slate-400 text-sm">No hay inquilinos que coincidan con los filtros o aún no tienes contratos.</p>
                 </div>`;
             return;
         }
 
         cont.innerHTML = lista.map(i => _renderCard(i)).join('');
 
-        cont.querySelectorAll('[data-action]').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                const action = btn.getAttribute('data-action');
-                const id = parseInt(btn.getAttribute('data-id'), 10);
-                _despachar(action, id);
+        // Bind click en tarjetas
+        cont.querySelectorAll('[data-inquilino-card]').forEach(card => {
+            card.addEventListener('click', () => {
+                const id = parseInt(card.getAttribute('data-inquilino-card'), 10);
+                const inq = _inquilinos.find(x => x.inquilino_id === id);
+                if (inq) _abrirModalDetalle(inq);
             });
         });
     }
 
     function _renderCard(i) {
-        const iniciales = (i.nombre || 'U').split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
-        const fmtMoney = v => new Intl.NumberFormat('es-MX', {style:'currency', currency:'MXN', maximumFractionDigits:0}).format(v);
-        const fmtFecha = d => new Date(d).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+        const iniciales = (i.nombre_completo || '?')
+            .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
-        const semColors = {
-            VERDE:    { bg:'bg-green-50',  border:'border-green-200',  text:'text-green-700',  dot:'bg-green-500',  label:'Excelente' },
-            AMARILLO: { bg:'bg-yellow-50', border:'border-yellow-200', text:'text-yellow-700', dot:'bg-yellow-500', label:'Regular' },
-            ROJO:     { bg:'bg-red-50',    border:'border-red-200',    text:'text-red-700',    dot:'bg-red-500',    label:'En riesgo' },
+        const sem = _semaforoConfig(i.nivel);
+        const fmtMoney = v => new Intl.NumberFormat('es-MX', {
+            style: 'currency', currency: 'MXN', maximumFractionDigits: 0
+        }).format(v);
+
+        // Barra de cumplimiento visual
+        const pct = parseFloat(i.cumplimiento_pct) || 0;
+        const barColor = i.nivel === 'VERDE' ? 'from-green-400 to-green-600'
+                       : i.nivel === 'AMARILLO' ? 'from-amber-400 to-amber-600'
+                       : i.nivel === 'ROJO' ? 'from-red-400 to-red-600'
+                       : 'from-slate-300 to-slate-400';
+
+        // Estado del contrato
+        const estadoContrato = {
+            ACTIVO:     { label: 'Activo',     badge: 'bg-green-50 text-green-700 border-green-200' },
+            FINALIZADO: { label: 'Finalizado', badge: 'bg-slate-100 text-slate-600 border-slate-200' },
+            TERMINADO:  { label: 'Terminado',  badge: 'bg-orange-50 text-orange-700 border-orange-200' }
         };
-        const s = semColors[i.semaforo.nivel];
+        const ec = estadoContrato[i.contrato_estado] || estadoContrato.ACTIVO;
 
         return `
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow anim-fade-in-up">
-            <!-- Encabezado coloreado por semáforo -->
-            <div class="${s.bg} ${s.border} border-b px-5 py-3 flex items-center gap-3">
-                <span class="w-2.5 h-2.5 rounded-full ${s.dot} animate-pulse"></span>
-                <span class="${s.text} text-xs font-bold uppercase tracking-wider">${s.label}</span>
-                <span class="ml-auto text-xs font-bold ${s.text}">
-                    ${i.semaforo.cumplimiento != null ? i.semaforo.cumplimiento + '% cumplimiento' : 'Sin historial'}
+        <div data-inquilino-card="${i.inquilino_id}"
+             class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden
+                    hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer
+                    anim-fade-in-up">
+
+            <!-- Semáforo header -->
+            <div class="${sem.bgSoft} ${sem.borderColor} border-b px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full ${sem.dot} ${i.nivel !== 'SIN_DATOS' ? 'animate-pulse' : ''}"></span>
+                    <span class="${sem.textColor} text-xs font-bold uppercase tracking-wider">${esc(sem.label)}</span>
+                </div>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${ec.badge} border text-[9px] font-bold uppercase">
+                    ${esc(ec.label)}
                 </span>
             </div>
 
             <div class="p-5">
-                <!-- Cabecera -->
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                <!-- Inquilino -->
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl ${sem.avatarBg} ${sem.textColor}
+                                flex items-center justify-center font-bold text-sm flex-shrink-0
+                                shadow-sm">
                         ${esc(iniciales)}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-slate-900 font-bold text-sm truncate">${esc(i.nombre)}</p>
-                        <p class="text-slate-500 text-xs truncate">${esc(i.correo)}</p>
+                        <p class="text-slate-900 font-bold text-sm truncate">${esc(i.nombre_completo)}</p>
+                        <p class="text-slate-500 text-xs truncate">
+                            <i class="fa-solid fa-envelope text-[10px] mr-0.5"></i>${esc(i.correo || '—')}
+                        </p>
+                        <p class="text-slate-400 text-[10px] truncate">
+                            <i class="fa-solid fa-house text-[9px] mr-0.5"></i>${esc(i.propiedad_nombre || '—')}
+                        </p>
                     </div>
                 </div>
 
-                <!-- Datos del depto -->
-                <div class="rounded-xl bg-slate-50 px-3 py-2 mb-3">
-                    <p class="text-[10px] text-slate-400 uppercase font-semibold">Propiedad</p>
-                    <p class="text-slate-800 text-sm font-semibold truncate">${esc(i.propiedad_nombre || '—')}</p>
-                    <p class="text-slate-400 text-xs truncate">${esc(i.propiedad_direccion || '')}</p>
-                </div>
-
-                <!-- Métricas -->
-                <div class="grid grid-cols-3 gap-2 text-center text-xs mb-4">
-                    <div>
-                        <p class="text-slate-400">Renta</p>
-                        <p class="font-bold text-slate-800">${fmtMoney(i.monto_renta)}</p>
+                <!-- Estadísticas -->
+                <div class="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+                    <div class="rounded-xl bg-green-50 py-2">
+                        <p class="text-green-700 font-bold text-base">${i.pagados}</p>
+                        <p class="text-green-500 text-[9px] uppercase font-semibold">Pagados</p>
                     </div>
-                    <div>
-                        <p class="text-slate-400">Vencidos</p>
-                        <p class="font-bold ${i.semaforo.vencidos > 0 ? 'text-red-600' : 'text-slate-800'}">${i.semaforo.vencidos}</p>
+                    <div class="rounded-xl bg-amber-50 py-2">
+                        <p class="text-amber-700 font-bold text-base">${i.pendientes}</p>
+                        <p class="text-amber-500 text-[9px] uppercase font-semibold">Pend.</p>
                     </div>
-                    <div>
-                        <p class="text-slate-400">Vence</p>
-                        <p class="font-bold text-slate-800 text-[11px]">${fmtFecha(i.fecha_fin)}</p>
+                    <div class="rounded-xl bg-red-50 py-2">
+                        <p class="text-red-700 font-bold text-base">${i.vencidos}</p>
+                        <p class="text-red-500 text-[9px] uppercase font-semibold">Vencidos</p>
                     </div>
                 </div>
 
-                <!-- Acciones -->
-                <div class="flex gap-2">
-                    <button data-action="historial" data-id="${i.contrato_id}"
-                            class="flex-1 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
-                        Historial
-                    </button>
-                    <button data-action="contrato" data-id="${i.contrato_id}"
-                            class="flex-1 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">
-                        Ver contrato
-                    </button>
+                <!-- Barra de cumplimiento -->
+                <div class="mt-3">
+                    <div class="flex justify-between text-[10px] mb-1">
+                        <span class="text-slate-400 font-semibold uppercase tracking-wider">Cumplimiento</span>
+                        <span class="${sem.textColor} font-bold">${pct}%</span>
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-700"
+                             style="width:${pct}%"></div>
+                    </div>
                 </div>
+
+                <!-- Renta -->
+                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-slate-400 text-[10px] font-semibold uppercase">Renta</span>
+                    <span class="text-slate-800 font-bold text-sm">${fmtMoney(i.monto_renta)}</span>
+                </div>
+
+                <p class="mt-2 text-center text-[10px] text-slate-400">
+                    <i class="fa-solid fa-arrow-right text-[9px] mr-1"></i> Toca para ver evaluación detallada
+                </p>
             </div>
         </div>`;
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Acciones
+    // Modal: Detalle de evaluación del inquilino
     // ──────────────────────────────────────────────────────────────
-    function _despachar(action, id) {
-        if (action === 'historial') return _abrirHistorial(id);
-        if (action === 'contrato')  return window.location.href = `detalle-contrato.html?contratoId=${id}`;
-    }
+    function _abrirModalDetalle(i) {
+        document.getElementById('modal-evaluacion-inquilino')?.remove();
 
-    async function _abrirHistorial(contratoId) {
-        const i = _inquilinos.find(x => x.contrato_id === contratoId);
-        if (!i) return;
-        document.getElementById('mod-hist-titulo').textContent = `Historial de ${i.nombre}`;
-        document.getElementById('mod-hist-prop').textContent   = i.propiedad_nombre || '';
-        const body = document.getElementById('mod-hist-body');
-        body.innerHTML = `<p class="text-slate-400 text-sm text-center py-6">Cargando…</p>`;
-        const m = document.getElementById('modal-historial');
-        m.classList.remove('hidden'); m.classList.add('flex');
+        const sem = _semaforoConfig(i.nivel);
+        const iniciales = (i.nombre_completo || '?')
+            .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+        const pct = parseFloat(i.cumplimiento_pct) || 0;
+        const fmtMoney = v => new Intl.NumberFormat('es-MX', {
+            style: 'currency', currency: 'MXN', maximumFractionDigits: 0
+        }).format(v);
 
-        // Historial de TODOS los contratos del inquilino en esta propiedad (RN-04: una sola dueño)
-        const { data: hist } = await window.supabaseClient
-            .from('contratos')
-            .select('contrato_id, propiedad_id, fecha_inicio, fecha_fin, fecha_terminacion, estado, monto_renta, propiedades ( nombre )')
-            .eq('inquilino_id', i.inquilino_id)
-            .order('fecha_inicio', { ascending: false });
+        // Determinar mensaje de evaluación según RN-19
+        let evaluacionHTML = '';
+        if (!i.tiene_historial) {
+            evaluacionHTML = `
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                    <i class="fa-solid fa-circle-info text-slate-400 text-xl mb-2"></i>
+                    <p class="text-slate-600 text-sm font-semibold">Sin historial suficiente</p>
+                    <p class="text-slate-400 text-xs mt-1">
+                        <strong>RN-19:</strong> La evaluación requiere al menos un pago en estado "Pagado" o "Vencido".
+                    </p>
+                </div>`;
+        } else {
+            const barColor = i.nivel === 'VERDE' ? 'from-green-400 to-green-600'
+                           : i.nivel === 'AMARILLO' ? 'from-amber-400 to-amber-600'
+                           : 'from-red-400 to-red-600';
 
-        if (!hist?.length) {
-            body.innerHTML = `<p class="text-center text-slate-400 text-sm">Sin historial.</p>`;
-            return;
+            evaluacionHTML = `
+                <!-- Semáforo grande -->
+                <div class="${sem.bgSoft} rounded-xl p-5 text-center border ${sem.borderColor}">
+                    <span class="inline-flex w-16 h-16 rounded-2xl ${sem.avatarBg} ${sem.textColor}
+                                items-center justify-center mb-3 shadow-lg">
+                        <i class="fa-solid ${sem.icon} text-2xl"></i>
+                    </span>
+                    <p class="${sem.textColor} font-extrabold text-2xl">${esc(sem.label)}</p>
+                    <p class="text-slate-500 text-xs mt-1">${esc(sem.desc)}</p>
+                </div>
+
+                <!-- Barra de progreso grande -->
+                <div class="mt-4">
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <span class="text-slate-500 font-semibold">Tasa de cumplimiento</span>
+                        <span class="${sem.textColor} font-bold text-lg">${pct}%</span>
+                    </div>
+                    <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r ${barColor} rounded-full transition-all duration-1000"
+                             style="width:${pct}%"></div>
+                    </div>
+                </div>
+
+                <!-- Detalle numérico -->
+                <div class="grid grid-cols-4 gap-2 mt-4 text-center">
+                    <div class="rounded-xl bg-slate-50 py-3">
+                        <p class="text-slate-800 font-bold text-lg">${i.total_cuotas}</p>
+                        <p class="text-slate-400 text-[9px] uppercase font-semibold">Total</p>
+                    </div>
+                    <div class="rounded-xl bg-green-50 py-3">
+                        <p class="text-green-700 font-bold text-lg">${i.pagados}</p>
+                        <p class="text-green-500 text-[9px] uppercase font-semibold">Pagados</p>
+                    </div>
+                    <div class="rounded-xl bg-amber-50 py-3">
+                        <p class="text-amber-700 font-bold text-lg">${i.pendientes}</p>
+                        <p class="text-amber-500 text-[9px] uppercase font-semibold">Pend.</p>
+                    </div>
+                    <div class="rounded-xl bg-red-50 py-3">
+                        <p class="text-red-700 font-bold text-lg">${i.vencidos}</p>
+                        <p class="text-red-500 text-[9px] uppercase font-semibold">Vencidos</p>
+                    </div>
+                </div>
+
+                <!-- Criterios del semáforo -->
+                <div class="mt-4 bg-slate-50 rounded-xl p-3 text-[11px] text-slate-600 space-y-1.5 leading-relaxed">
+                    <p class="font-bold text-slate-700 text-xs mb-1.5">
+                        <i class="fa-solid fa-list-check mr-1"></i> Criterios de evaluación
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                        <span><strong>Excelente:</strong> Cumplimiento ≥ 90% y máx. 1 pago vencido.</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
+                        <span><strong>Regular:</strong> Cumplimiento ≥ 60% y máx. 3 pagos vencidos.</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></span>
+                        <span><strong>En riesgo:</strong> Cumplimiento &lt; 60% o más de 3 vencidos.</span>
+                    </div>
+                </div>`;
         }
 
-        const fmt = d => d ? new Date(d).toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'}) : '—';
-        const fmtMoney = v => new Intl.NumberFormat('es-MX', {style:'currency', currency:'MXN', maximumFractionDigits:0}).format(v);
-        const lblEstado = { ACTIVO:'Activo', FINALIZADO:'Finalizado', TERMINADO:'Terminado' };
-        const colorEstado = {
-            ACTIVO: 'bg-green-100 text-green-700',
-            FINALIZADO: 'bg-slate-200 text-slate-600',
-            TERMINADO: 'bg-orange-100 text-orange-700'
-        };
+        const modalHTML = `
+        <div id="modal-evaluacion-inquilino"
+             class="fixed inset-0 z-50 flex items-end sm:items-center justify-center
+                    bg-black/50 backdrop-blur-sm p-0 sm:p-4 anim-fade-in-up">
+            <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl
+                        shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
 
-        body.innerHTML = `
-            <div class="space-y-3">
-                <!-- línea temporal -->
-                <p class="text-xs text-slate-500 mb-2">Línea temporal de ocupación:</p>
-                ${hist.map(h => `
-                    <div class="border border-slate-100 rounded-xl p-3.5">
-                        <div class="flex items-center justify-between gap-2 mb-1">
-                            <p class="font-semibold text-slate-800 text-sm truncate">${esc(h.propiedades?.nombre || 'Propiedad')}</p>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${colorEstado[h.estado] || 'bg-slate-100'}">${esc(lblEstado[h.estado] || h.estado)}</span>
+                <!-- Cabecera -->
+                <div class="px-5 py-4 bg-gradient-to-r from-[#0f2557] to-[#1d4ed8] text-white">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur
+                                    flex items-center justify-center font-bold text-lg flex-shrink-0">
+                            ${esc(iniciales)}
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                            <div><span class="font-medium">Inicio:</span> ${fmt(h.fecha_inicio)}</div>
-                            <div><span class="font-medium">Fin:</span> ${fmt(h.fecha_fin)}</div>
-                            ${h.fecha_terminacion ? `<div class="col-span-2"><span class="font-medium">Terminación anticipada:</span> ${fmt(h.fecha_terminacion)}</div>` : ''}
-                            <div class="col-span-2"><span class="font-medium">Renta:</span> ${fmtMoney(h.monto_renta)}</div>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-base leading-tight truncate">${esc(i.nombre_completo)}</p>
+                            <p class="text-blue-200/80 text-xs truncate">${esc(i.correo || '—')}</p>
+                            <p class="text-blue-200/60 text-[10px] truncate">
+                                <i class="fa-solid fa-house mr-0.5"></i>${esc(i.propiedad_nombre)} · ${fmtMoney(i.monto_renta)}/mes
+                            </p>
                         </div>
-                        <a href="detalle-contrato.html?contratoId=${h.contrato_id}" class="inline-block mt-2 text-xs text-blue-600 font-semibold hover:underline">
-                            Ver contrato →
+                        <button onclick="document.getElementById('modal-evaluacion-inquilino').remove()"
+                                class="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0">
+                            <i class="fa-solid fa-xmark text-white"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cuerpo: Evaluación -->
+                <div class="p-5">
+                    ${evaluacionHTML}
+
+                    <!-- Aviso RN-18 -->
+                    <div class="mt-4 flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800">
+                        <i class="fa-solid fa-info-circle flex-shrink-0 mt-0.5"></i>
+                        <span>
+                            <strong>RN-18:</strong> Esta evaluación solo considera contratos activos, finalizados
+                            o terminados. Los contratos pendientes o rechazados no influyen.
+                        </span>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="flex gap-2 mt-5">
+                        <button onclick="document.getElementById('modal-evaluacion-inquilino').remove()"
+                                class="flex-1 px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100
+                                       text-sm font-semibold transition">
+                            Cerrar
+                        </button>
+                        <a href="detalle-contrato.html?contratoId=${i.contrato_id}"
+                           class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700
+                                  text-white text-sm font-semibold shadow-md text-center transition">
+                            <i class="fa-solid fa-file-contract mr-1"></i> Ver contrato
                         </a>
                     </div>
-                `).join('')}
-            </div>`;
-    }
-
-    function cerrarModal() {
-        const m = document.getElementById('modal-historial');
-        m.classList.add('hidden'); m.classList.remove('flex');
-    }
-
-    return { init, cerrarModal };
-})();
-// ──────────────────────────────────────────────────────────────
-// Crear modal de historial si no existe en el DOM
-// ──────────────────────────────────────────────────────────────
-function _asegurarModalHistorial() {
-    if (document.getElementById('modal-historial')) return;
-
-    const modalHTML = `
-    <div id="modal-historial"
-         class="fixed inset-0 z-40 hidden items-end sm:items-center justify-center
-                bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-        <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
-                <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 014-4h4M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/>
-                    </svg>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h4 id="mod-hist-titulo" class="text-slate-900 font-bold text-base truncate">Historial</h4>
-                    <p id="mod-hist-prop" class="text-slate-500 text-xs truncate">—</p>
-                </div>
-                <button onclick="INQUILINOS_EDIFICIO.cerrarModal()" class="p-2 rounded-xl text-slate-400 hover:bg-slate-100">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
             </div>
-            <div id="mod-hist-body" class="flex-1 overflow-y-auto p-5"></div>
-        </div>
-    </div>`;
+        </div>`;
 
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Configuración visual del semáforo
+    // ──────────────────────────────────────────────────────────────
+    function _semaforoConfig(nivel) {
+        const configs = {
+            VERDE: {
+                label: 'Excelente', desc: 'Pagos al día. Inquilino confiable.',
+                dot: 'bg-green-500', textColor: 'text-green-700',
+                bgSoft: 'bg-green-50', borderColor: 'border-green-200',
+                avatarBg: 'bg-green-100', icon: 'fa-shield-check'
+            },
+            AMARILLO: {
+                label: 'Regular', desc: 'Algunos pagos con retraso. Atención requerida.',
+                dot: 'bg-amber-500', textColor: 'text-amber-700',
+                bgSoft: 'bg-amber-50', borderColor: 'border-amber-200',
+                avatarBg: 'bg-amber-100', icon: 'fa-exclamation-triangle'
+            },
+            ROJO: {
+                label: 'En riesgo', desc: 'Alta morosidad. Acción urgente recomendada.',
+                dot: 'bg-red-500', textColor: 'text-red-700',
+                bgSoft: 'bg-red-50', borderColor: 'border-red-200',
+                avatarBg: 'bg-red-100', icon: 'fa-circle-xmark'
+            },
+            SIN_DATOS: {
+                label: 'Sin historial', desc: 'No hay datos suficientes para evaluar.',
+                dot: 'bg-slate-400', textColor: 'text-slate-600',
+                bgSoft: 'bg-slate-50', borderColor: 'border-slate-200',
+                avatarBg: 'bg-slate-100', icon: 'fa-circle-question'
+            }
+        };
+        return configs[nivel] || configs.SIN_DATOS;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────────────────────
+    function _set(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val ?? '—');
+    }
+
+    return { init };
+})();
 
 window.INQUILINOS_EDIFICIO = INQUILINOS_EDIFICIO;
