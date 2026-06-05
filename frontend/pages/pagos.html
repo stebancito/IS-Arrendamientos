@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Pagos | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <!-- Loader inicial -->
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando gestión de pagos…</p>
+    </div>
+
+    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
+    <div id="page-template" class="hidden">
+
+        <!-- ── Cabecera ── -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 anim-fade-in-up">
+            <div>
+                <h3 class="text-slate-900 font-bold text-xl">Gestión de pagos</h3>
+                <p class="text-slate-500 text-sm mt-0.5">
+                    Valida los pagos reportados por inquilinos, registra pagos manuales y consulta el historial.
+                </p>
+            </div>
+        </div>
+
+        <!-- ── Métricas rápidas ── -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Por validar</p>
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <i class="fa-solid fa-paper-plane text-blue-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-reportados" class="text-blue-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pagados</p>
+                    <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                        <i class="fa-solid fa-circle-check text-green-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-pagados" class="text-green-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Vencidos</p>
+                    <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-vencidos" class="text-red-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pendientes</p>
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <i class="fa-solid fa-clock text-amber-600 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-pendientes" class="text-amber-600 font-bold text-2xl">—</p>
+            </div>
+        </div>
+
+        <!-- ── Tabs + Filtros ── -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5 anim-fade-in-up anim-delay-2">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                <!-- Tabs -->
+                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0">
+                    <button class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                            data-tab="validar">
+                        <i class="fa-solid fa-inbox mr-1"></i> Por validar
+                    </button>
+                    <button class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            data-tab="registrar">
+                        <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Registrar
+                    </button>
+                    <button class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            data-tab="historial">
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial
+                    </button>
+                </div>
+
+                <!-- Filtros (solo para historial) -->
+                <div class="flex flex-1 gap-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input id="f-buscar" type="text" placeholder="Buscar inquilino o propiedad…"
+                               class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                    </div>
+                    <select id="f-estado" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                        <option value="">Todos</option>
+                        <option value="PAGADO">Pagados</option>
+                        <option value="PENDIENTE">Pendientes</option>
+                        <option value="VENCIDO">Vencidos</option>
+                        <option value="REPORTADO">Reportados</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Contenido dinámico de la tab activa ── -->
+        <div id="tab-content" class="anim-fade-in-up anim-delay-3">
+            <!-- Skeleton de carga -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse space-y-3">
+                <div class="h-4 bg-slate-200 rounded w-1/3"></div>
+                <div class="h-24 bg-slate-100 rounded-xl"></div>
+                <div class="h-24 bg-slate-100 rounded-xl"></div>
+            </div>
+        </div>
+    </div>
+    <!-- /page-template -->
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/utils/calendario-helper.js"></script>
+    <script src="../js/pagos-arrendador.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'pagos' });
+            LAYOUT.setPageTitle('Gestión de pagos');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+
+            PAGOS_ARRENDADOR.init(usuario);
+        } catch (err) {
+            console.error('[PAGOS] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>

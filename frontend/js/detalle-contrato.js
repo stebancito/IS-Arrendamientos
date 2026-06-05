@@ -313,7 +313,7 @@ const DETALLE_CONTRATO = (() => {
                             fechas, termina el actual y crea uno nuevo.
                         </span>
                     </div>
-
+ 
                     <a href="pagos.html?contratoId=${esc(String(c.contrato_id))}"
                        class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl
                               bg-blue-50 hover:bg-blue-100 text-blue-700
@@ -321,7 +321,15 @@ const DETALLE_CONTRATO = (() => {
                         <i class="fa-solid fa-money-bill-wave w-4 text-center"></i>
                         Registrar pago recibido
                     </a>
-
+ 
+                    <a href="pagos.html?contratoId=${esc(String(c.contrato_id))}&tab=calendario"
+                       class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl mt-2
+                              bg-green-50 hover:bg-green-100 text-green-700
+                              text-sm font-semibold transition border border-green-100">
+                        <i class="fa-solid fa-calendar-days w-4 text-center"></i>
+                        Ver calendario de pagos
+                    </a>
+ 
                     <button id="btn-terminar-activo"
                             class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl mt-2
                                    bg-red-50 hover:bg-red-100 text-red-700
@@ -329,7 +337,7 @@ const DETALLE_CONTRATO = (() => {
                         <i class="fa-solid fa-file-circle-xmark w-4 text-center"></i>
                         Terminar anticipadamente
                     </button>
-
+ 
                     <p class="text-slate-400 text-[11px] leading-relaxed mt-2">
                         El historial de pagos y el contrato se conservarán íntegros (RN-09).
                     </p>`;

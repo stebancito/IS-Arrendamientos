@@ -432,33 +432,116 @@ const CONTRATOS_INQUILINO = (() => {
         if (window.TOAST) TOAST.success('Contrato aceptado y calendario de pagos generado.');
     }
 
-    /**
+        /**
      * Genera los registros del calendario de pagos para un contrato.
-     * Solo cubre frecuencia MENSUAL en esta primera versión (RN-11).
-     * El día de pago se toma del día de la fecha de inicio.
+     * Soporta las tres frecuencias: MENSUAL, QUINCENAL y SEMANAL.
+     *
+     * Para cada cuota se calculan:
+     *   - periodo_inicio / periodo_fin: rango de cobertura del pago
+     *   - fecha_limite: último día del periodo (= periodo_fin)
+     *   - monto_esperado: monto_renta para mensual, /2 para quincenal, /~4.33 para semanal
+     *
+     * La lógica de avance:
+     *   MENSUAL   → cursor avanza 1 mes natural
+     *   QUINCENAL → cursor avanza 15 días
+     *   SEMANAL   → cursor avanza 7 días
+     *
+     * @param {Object} c – contrato con { contrato_id, fecha_inicio, fecha_fin, monto_renta, frecuencia_pago }
+     * @returns {Array<Object>} registros listos para INSERT en calendario_pagos
      */
     function _generarCalendarioPagos(c) {
         const lista = [];
-        if (c.frecuencia_pago !== 'MENSUAL') {
-            // Para quincenal/semanal podríamos extender la lógica aquí
-            return lista;
+        const inicio = new Date(c.fecha_inicio + 'T00:00:00');
+        const fin    = new Date(c.fecha_fin + 'T00:00:00');
+ 
+        // ── Calcular monto proporcional según frecuencia ──
+        // El monto_renta del contrato siempre se interpreta como MENSUAL.
+        // Para frecuencias más cortas, dividimos proporcionalmente.
+        let montoEsperado;
+        switch (c.frecuencia_pago) {
+            case 'QUINCENAL':
+                montoEsperado = Math.round((c.monto_renta / 2) * 100) / 100;
+                break;
+            case 'SEMANAL':
+                // ~4.33 semanas por mes → monto_renta / 4.33
+                montoEsperado = Math.round((c.monto_renta / 4.33) * 100) / 100;
+                break;
+            case 'MENSUAL':
+            default:
+                montoEsperado = c.monto_renta;
+                break;
         }
-        const inicio = new Date(c.fecha_inicio);
-        const fin    = new Date(c.fecha_fin);
+ 
+        // ── Función auxiliar: formato ISO de una fecha ──
+        const toISO = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${dd}`;
+        };
+ 
+        // ── Función auxiliar: calcular el fin del periodo ──
+        const calcularFinPeriodo = (periodoInicio, frecuencia) => {
+            const finP = new Date(periodoInicio);
+            switch (frecuencia) {
+                case 'SEMANAL':
+                    finP.setDate(finP.getDate() + 6);   // 7 días de cobertura
+                    break;
+                case 'QUINCENAL':
+                    finP.setDate(finP.getDate() + 14);   // 15 días de cobertura
+                    break;
+                case 'MENSUAL':
+                default:
+                    finP.setMonth(finP.getMonth() + 1);
+                    finP.setDate(finP.getDate() - 1);    // último día del mes de cobertura
+                    break;
+            }
+            return finP;
+        };
+ 
+        // ── Función auxiliar: avanzar el cursor al siguiente periodo ──
+        const avanzarCursor = (cursor, frecuencia) => {
+            switch (frecuencia) {
+                case 'SEMANAL':
+                    cursor.setDate(cursor.getDate() + 7);
+                    break;
+                case 'QUINCENAL':
+                    cursor.setDate(cursor.getDate() + 15);
+                    break;
+                case 'MENSUAL':
+                default:
+                    cursor.setMonth(cursor.getMonth() + 1);
+                    break;
+            }
+        };
+ 
+        // ── Iterar y generar cuotas ──
         const cursor = new Date(inicio);
-
         while (cursor <= fin) {
+            const periodoInicio = new Date(cursor);
+            const periodoFin    = calcularFinPeriodo(periodoInicio, c.frecuencia_pago);
+ 
+            // Si el periodo excede la fecha de fin del contrato, lo recortamos
+            const periodoFinEfectivo = periodoFin > fin ? fin : periodoFin;
+ 
+            // La fecha límite de pago es el último día del periodo
+            const fechaLimite = periodoFinEfectivo;
+ 
             lista.push({
-                contrato_id: c.contrato_id,
-                fecha_limite: cursor.toISOString().slice(0, 10),
-                monto_esperado: c.monto_renta,
-                anio: cursor.getFullYear(),
-                mes: cursor.getMonth() + 1,
-                estado: 'PENDIENTE',
+                contrato_id:    c.contrato_id,
+                fecha_limite:   toISO(fechaLimite),
+                monto_esperado: montoEsperado,
+                anio:           periodoInicio.getFullYear(),
+                mes:            periodoInicio.getMonth() + 1,
+                estado:         'PENDIENTE',
+                periodo_inicio: toISO(periodoInicio),
+                periodo_fin:    toISO(periodoFinEfectivo),
             });
-            // Avanzar al siguiente mes
-            cursor.setMonth(cursor.getMonth() + 1);
+ 
+            // Avanzar al siguiente periodo
+            avanzarCursor(cursor, c.frecuencia_pago);
         }
+ 
         return lista;
     }
 

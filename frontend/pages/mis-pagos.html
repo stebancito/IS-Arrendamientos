@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mis Pagos | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <!-- Loader inicial -->
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando tus pagos…</p>
+    </div>
+
+    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
+    <div id="page-template" class="hidden">
+
+        <!-- ── Cabecera ── -->
+        <div class="mb-5 anim-fade-in-up">
+            <h3 class="text-slate-900 font-bold text-xl">Mis pagos</h3>
+            <p class="text-slate-500 text-sm mt-0.5">
+                Consulta tu calendario de pagos, reporta pagos realizados y revisa tu historial.
+            </p>
+        </div>
+
+        <!-- ── Banner de próximo pago (sticky en desktop) ── -->
+        <div id="banner-proximo" class="mb-5 anim-fade-in-up anim-delay-1">
+            <!-- Render dinámico por pagos-inquilino.js -->
+            <div class="flex items-center gap-3 p-4 rounded-2xl bg-slate-100 border border-slate-200 animate-pulse">
+                <div class="w-10 h-10 rounded-xl bg-slate-200"></div>
+                <div class="flex-1">
+                    <div class="h-4 bg-slate-200 rounded w-1/2 mb-2"></div>
+                    <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Grid principal: contenido + sidebar ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-5">
+
+            <!-- ╔═ Columna principal (3/4) ═╗ -->
+            <div class="lg:col-span-3 space-y-5">
+
+                <!-- Selector de contrato + Tabs -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 anim-fade-in-up anim-delay-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <!-- Selector de contrato -->
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Contrato</label>
+                            <select id="selector-contrato"
+                                    class="input-brand w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                                <option value="">Sin contratos disponibles</option>
+                            </select>
+                        </div>
+
+                        <!-- Tabs de vista -->
+                        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0">
+                            <button class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                                    data-tab="calendario">
+                                <i class="fa-solid fa-calendar-days mr-1"></i> Calendario
+                            </button>
+                            <button class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                                    data-tab="lista">
+                                <i class="fa-solid fa-list mr-1"></i> Lista
+                            </button>
+                            <button class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                                    data-tab="historial">
+                                <i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenido dinámico de la tab activa -->
+                <div id="tab-content" class="anim-fade-in-up anim-delay-3">
+                    <!-- Skeleton de carga -->
+                    <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                        <div class="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
+                        <div class="grid grid-cols-7 gap-2">
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                            <div class="h-12 bg-slate-100 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ╔═ Sidebar: Resumen de totales (1/4) ═╗ -->
+            <aside class="lg:col-span-1 anim-fade-in-up anim-delay-3">
+                <div class="sticky top-20 space-y-4">
+
+                    <!-- Resumen numérico -->
+                    <div class="bg-gradient-to-br from-[#0c1f4a] via-[#0f2557] to-[#1a3680] rounded-2xl p-5 text-white shadow-xl">
+                        <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider mb-3">
+                            <i class="fa-solid fa-chart-pie mr-1"></i> Resumen del contrato
+                        </p>
+
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-blue-200/70">Total cuotas</span>
+                                <span id="r-total" class="font-bold">—</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-blue-200/70">Pagados</span>
+                                <span id="r-pagados" class="font-bold text-green-300">—</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-blue-200/70">Pendientes</span>
+                                <span id="r-pendientes" class="font-bold text-amber-300">—</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-blue-200/70">Vencidos</span>
+                                <span id="r-vencidos" class="font-bold text-red-300">—</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-blue-200/70">Reportados</span>
+                                <span id="r-reportados" class="font-bold text-blue-300">—</span>
+                            </div>
+
+                            <div class="pt-3 border-t border-white/10">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-blue-200/70">Cumplimiento</span>
+                                    <span id="r-cumplimiento" class="font-extrabold text-lg">—</span>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 border-t border-white/10">
+                                <p class="text-blue-200/50 text-[10px] uppercase font-semibold mb-1">Adeudo pendiente</p>
+                                <p id="r-deuda" class="font-extrabold text-xl text-amber-300">—</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Leyenda de estados -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                        <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-3">
+                            <i class="fa-solid fa-circle-info mr-1"></i> Estados
+                        </p>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                <span class="text-slate-700"><span class="font-semibold">Pendiente:</span> cuota aún no reportada.</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                <span class="text-slate-700"><span class="font-semibold">Reportado:</span> en espera de validación.</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                                <span class="text-slate-700"><span class="font-semibold">Pagado:</span> validado por el arrendador.</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                <span class="text-slate-700"><span class="font-semibold">Vencido:</span> fecha límite superada.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+    <!-- /page-template -->
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/utils/calendario-helper.js"></script>
+    <script src="../js/pagos-inquilino.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'pagos' });
+            LAYOUT.setPageTitle('Mis pagos');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'INQUILINO') {
+                window.location.replace('dashboard-arrendador.html');
+                return;
+            }
+
+            PAGOS_INQUILINO.init(usuario);
+        } catch (err) {
+            console.error('[MIS-PAGOS] init error:', err);
+        }
+    })();
+    </script>
+</body>
+</html>
