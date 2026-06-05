@@ -610,9 +610,14 @@ const FINANCIERO_ARRENDADOR = (() => {
                     <div class="min-w-0">
                         <p class="text-slate-900 font-semibold text-sm truncate">${esc(r.nombre)}</p>
                         <p class="text-slate-400 text-xs truncate">${esc(r.correo)}</p>
+                        <!-- Resumen compacto solo en móvil (en sm+ se ve la rejilla de la derecha) -->
+                        <p class="sm:hidden text-[11px] text-slate-500 mt-0.5 truncate">
+                            ${r.cumplimiento}% cumpl · ${r.pagados} pag ·
+                            <span class="${r.vencidos > 0 ? 'text-red-600 font-semibold' : ''}">${r.vencidos} venc</span>
+                        </p>
                     </div>
                 </div>
-                <!-- Métricas -->
+                <!-- Métricas (rejilla detallada en sm+) -->
                 <div class="hidden sm:flex items-center gap-4 text-center text-xs flex-shrink-0">
                     <div>
                         <p class="font-bold text-slate-800">${r.cumplimiento}%</p>
