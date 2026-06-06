@@ -573,7 +573,7 @@ const PROPIEDADES = (() => {
                 </button>`;
         } else {
             acciones = `
-                <a href="detalle-contrato.html?deptoId=${p.propiedad_id}"
+                <a href="nuevo-contrato.html?deptoId=${p.propiedad_id}"
                    class="flex-1 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold text-center">
                     Crear contrato
                 </a>`;
@@ -730,7 +730,7 @@ const PROPIEDADES = (() => {
                 <div class="flex gap-1.5 mt-3">
                     ${h._ocupada
                         ? `<button data-action="ver-inquilino" data-id="${h.propiedad_id}" class="flex-1 px-2 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-semibold">Ver inquilino</button>`
-                        : `<a href="detalle-contrato.html?deptoId=${h.propiedad_id}" class="flex-1 px-2 py-1.5 rounded-lg bg-green-600 text-white text-[11px] font-semibold text-center">Crear contrato</a>`}
+                        : `<a href="nuevo-contrato.html?deptoId=${h.propiedad_id}" class="flex-1 px-2 py-1.5 rounded-lg bg-green-600 text-white text-[11px] font-semibold text-center">Crear contrato</a>`}
                     <button data-action="editar" data-id="${h.propiedad_id}" class="px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold" title="Editar">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>

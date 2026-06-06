@@ -9,6 +9,7 @@ CREATE TYPE estado_pago_enum AS ENUM ('PENDIENTE', 'PAGADO', 'VENCIDO');
 CREATE TYPE categoria_incidencia_enum AS ENUM ('PLOMERIA', 'ELECTRICIDAD', 'ESTRUCTURA', 'LIMPIEZA', 'SEGURIDAD', 'OTRO');
 CREATE TYPE estado_incidencia_enum AS ENUM ('ABIERTA', 'EN_PROCESO', 'RESUELTA');
 CREATE TYPE tipo_notificacion_enum AS ENUM ('PAGO_PROXIMO', 'PAGO_VENCIDO', 'INCIDENCIA_ACTUALIZADA', 'CONTRATO_TERMINADO', 'RECORDATORIO');
+CREATE TYPE metodo_pago_enum AS ENUM ('TRANSFERENCIA', 'EFECTIVO', 'CHEQUE', 'DEPOSITO', 'TARJETA', 'OTRO');
 
 -- ======================================================
 -- 2. TABLAS (con integración a auth.users)
@@ -45,6 +46,7 @@ CREATE TABLE public.propiedades (
   actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
   activa boolean NOT NULL DEFAULT true,
   descripcion text,
+  beneficios jsonb DEFAULT '[]'::jsonb,
   CONSTRAINT propiedades_pkey PRIMARY KEY (propiedad_id),
   CONSTRAINT propiedades_duenio_id_fkey FOREIGN KEY (duenio_id) REFERENCES public.usuarios(usuario_id),
   CONSTRAINT propiedades_propiedad_padre_id_fkey FOREIGN KEY (propiedad_padre_id) REFERENCES public.propiedades(propiedad_id)
@@ -96,6 +98,10 @@ CREATE TABLE public.calendario_pagos (
   estado USER-DEFINED NOT NULL DEFAULT 'PENDIENTE'::estado_pago_enum,
   fecha_pagado date,
   actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
+  periodo_inicio date,
+  periodo_fin date,
+  reportado_en timestamp with time zone,
+  validado_en timestamp with time zone,
   CONSTRAINT calendario_pagos_pkey PRIMARY KEY (calendario_id),
   CONSTRAINT calendario_pagos_contrato_id_fkey FOREIGN KEY (contrato_id) REFERENCES public.contratos(contrato_id)
 );
@@ -110,9 +116,15 @@ CREATE TABLE public.registros_pago (
   monto_recibido numeric NOT NULL,
   notas text,
   creado_en timestamp with time zone NOT NULL DEFAULT now(),
+  metodo_pago USER-DEFINED NOT NULL DEFAULT 'TRANSFERENCIA'::metodo_pago_enum,
+  referencia character varying,
+  comprobante_url text,
+  validado boolean NOT NULL DEFAULT false,
+  validado_por_id bigint,
   CONSTRAINT registros_pago_pkey PRIMARY KEY (pago_id),
   CONSTRAINT registros_pago_calendario_id_fkey FOREIGN KEY (calendario_id) REFERENCES public.calendario_pagos(calendario_id),
-  CONSTRAINT registros_pago_registrado_por_id_fkey FOREIGN KEY (registrado_por_id) REFERENCES public.usuarios(usuario_id)
+  CONSTRAINT registros_pago_registrado_por_id_fkey FOREIGN KEY (registrado_por_id) REFERENCES public.usuarios(usuario_id),
+  CONSTRAINT registros_pago_validado_por_id_fkey FOREIGN KEY (validado_por_id) REFERENCES public.usuarios(usuario_id)
 );
 
 -- Tabla incidencias
@@ -236,3 +248,4 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon;
 
 CREATE POLICY "anon puede todo" ON usuarios FOR ALL USING (true) WITH CHECK (true);
 -- repite para cada tabla, o simplemente asegúrate de que RLS esté desactivado.
+

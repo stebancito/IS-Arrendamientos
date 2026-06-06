@@ -181,3 +181,29 @@ body {
     opacity: 0;
     transform: translateX(-10px);
 }
+
+/* ── Accesibilidad: foco visible para navegación por teclado ──────
+   Tailwind CDN no genera utilidades focus-visible; este anillo
+   aparece SOLO al navegar con teclado (no con mouse) y no afecta el
+   layout. Los inputs ya tienen su propio anillo vía .input-brand. */
+a:focus-visible,
+button:focus-visible,
+[role="tab"]:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+/* ── Respeta la preferencia del sistema "reducir movimiento" ──────
+   Desactiva animaciones/transiciones para usuarios sensibles al
+   movimiento o con mareo (accesibilidad). Aditivo: solo aplica si el
+   usuario lo pidió en su sistema operativo. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+}

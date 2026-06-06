@@ -7,6 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -151,17 +152,96 @@
 
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-medium text-slate-600 mb-1.5">Dirección completa *</label>
-                            <textarea id="prop-direccion" rows="2" maxlength="500"
-                                      placeholder="Calle, número, colonia, ciudad, CP"
-                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <textarea id="prop-direccion" rows="4" maxlength="500"
+                                              placeholder="Ej. Av. Reforma 124, Colonia Centro, Ciudad, CP"
+                                              class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none h-full"></textarea>
+                                    <p class="text-slate-400 text-[11px] leading-tight">
+                                        <i class="fa-solid fa-map-location-dot mr-1 text-blue-500"></i>
+                                        Escribe la dirección y el mapa interactivo se actualizará automáticamente para visualizar la ubicación.
+                                    </p>
+                                </div>
+                                <div class="h-48 md:h-auto min-h-[200px] rounded-xl overflow-hidden border border-slate-200 shadow-inner relative bg-slate-100 flex items-center justify-center">
+                                    <iframe id="mapa-iframe"
+                                            width="100%" height="100%" frameborder="0" style="border:0;"
+                                            src="https://maps.google.com/maps?q=Mexico&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                                            allowfullscreen="" aria-hidden="false" tabindex="0">
+                                    </iframe>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Beneficios y descripción</label>
-                            <textarea id="prop-descripcion" rows="3" maxlength="1000"
-                                      placeholder="Ej. Estacionamiento, agua incluida, área común, seguridad 24/7…"
-                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
-                            <p class="text-slate-400 text-xs mt-1">Opcional. Estos detalles ayudan a recordar las características del inmueble.</p>
+                        <div class="sm:col-span-2 space-y-5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Beneficios del inmueble</label>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+    
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="estacionamiento" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-square-parking text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Estacionamiento</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center opacity-0 transition-opacity [[data-checked=true]]:opacity-100 hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="gimnasio" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-dumbbell text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Gimnasio</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="area_social" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-champagne-glasses text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Área Social</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="jardin" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-leaf text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Jardín</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="mascotas" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-paw text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Mascotas</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                            </div>                  
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1.5">Descripción general del inmueble</label>
+                                <textarea id="prop-descripcion" rows="3" maxlength="1000"
+                                          placeholder="Ingresa especificaciones internas, reglamento o información detallada sobre el estado del inmueble…"
+                                          class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                                <p class="text-slate-400 text-xs mt-1">Opcional. Texto complementario para control administrativo.</p>
+                            </div>
                         </div>
                     </div>
                 </section>

@@ -7,6 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -17,76 +18,206 @@
 </head>
 <body class="font-sans antialiased bg-slate-50">
 
+    <!-- Loader inicial -->
     <div id="initial-loader"
          class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
         <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
-        <p class="text-blue-200 text-sm font-medium">Cargando inquilinos…</p>
+        <p class="text-blue-200 text-sm font-medium">Evaluando inquilinos…</p>
     </div>
 
+    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
     <div id="page-template" class="hidden">
 
-        <!-- ── Cabecera ── -->
+        <!-- ╔═══════════════════════════════════════════════════╗ -->
+        <!-- ║                  CABECERA                         ║ -->
+        <!-- ╚═══════════════════════════════════════════════════╝ -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
             <div>
-                <h3 class="text-slate-900 font-bold text-xl">Inquilinos</h3>
-                <p id="contexto-edificio" class="text-slate-500 text-sm mt-0.5">Visualiza el comportamiento financiero de tus inquilinos.</p>
+                <h3 class="text-slate-900 font-bold text-xl flex items-center gap-2">
+                    <i class="fa-solid fa-users text-blue-600"></i>
+                    Inquilinos y evaluaciones
+                </h3>
+                <p class="text-slate-500 text-sm mt-0.5">
+                    Semáforo de confianza basado en historial de pagos. Toca una tarjeta para ver el detalle.
+                </p>
             </div>
-            <div class="flex gap-2">
-                <select id="filtro-edificio" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm">
-                    <option value="">Todos los edificios</option>
-                </select>
-                <select id="filtro-semaforo" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm">
-                    <option value="">Todos</option>
+            <a href="nuevo-contrato.html"
+               class="btn-primary inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl
+                      bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
+                      shadow-md shadow-blue-600/25 self-start sm:self-auto">
+                <i class="fa-solid fa-plus text-xs"></i>
+                Nuevo contrato
+            </a>
+        </div>
+
+        <!-- ╔═══════════════════════════════════════════════════╗ -->
+        <!-- ║           MÉTRICAS DE SEMÁFORO                    ║ -->
+        <!-- ╚═══════════════════════════════════════════════════╝ -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+
+            <!-- Total -->
+            <div class="stat-card bg-gradient-to-br from-[#0f2557] to-[#1d4ed8] rounded-2xl p-4
+                        border border-blue-900/30 shadow-lg shadow-blue-900/20 anim-fade-in-up anim-delay-1">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-blue-200/80 text-[10px] font-bold uppercase tracking-widest">Total</p>
+                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                        <i class="fa-solid fa-users text-blue-300 text-sm"></i>
+                    </div>
+                </div>
+                <p id="m-total" class="text-white font-extrabold text-2xl">—</p>
+            </div>
+
+            <!-- Verdes -->
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Excelente</p>
+                    <span class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
+                </div>
+                <p id="m-verdes" class="text-green-600 font-extrabold text-2xl">—</p>
+            </div>
+
+            <!-- Amarillos -->
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Regular</p>
+                    <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                </div>
+                <p id="m-amarillos" class="text-amber-600 font-extrabold text-2xl">—</p>
+            </div>
+
+            <!-- Rojos -->
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">En riesgo</p>
+                    <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                </div>
+                <p id="m-rojos" class="text-red-600 font-extrabold text-2xl">—</p>
+            </div>
+
+            <!-- Sin datos -->
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Sin datos</p>
+                    <span class="w-3 h-3 rounded-full bg-slate-400"></span>
+                </div>
+                <p id="m-sin-datos" class="text-slate-600 font-extrabold text-2xl">—</p>
+            </div>
+        </div>
+
+        <!-- ╔═══════════════════════════════════════════════════╗ -->
+        <!-- ║                   FILTROS                         ║ -->
+        <!-- ╚═══════════════════════════════════════════════════╝ -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5 anim-fade-in-up anim-delay-2">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input id="f-buscar" type="text" placeholder="Buscar por nombre, correo o propiedad…"
+                           class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                </div>
+                <select id="f-nivel" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                    <option value="">Todos los niveles</option>
                     <option value="VERDE">🟢 Excelente</option>
                     <option value="AMARILLO">🟡 Regular</option>
                     <option value="ROJO">🔴 En riesgo</option>
+                    <option value="SIN_DATOS">⚪ Sin historial</option>
                 </select>
             </div>
         </div>
 
-        <!-- ── Resumen de semáforos ── -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-1">
-                <div class="inline-flex items-center gap-2 mb-1">
-                    <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                    <p class="text-slate-500 text-xs font-semibold uppercase">Excelente</p>
+        <!-- ╔═══════════════════════════════════════════════════╗ -->
+        <!-- ║          LISTADO DE INQUILINOS                    ║ -->
+        <!-- ╚═══════════════════════════════════════════════════╝ -->
+        <div id="lista-inquilinos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Skeletons de carga -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-slate-200"></div>
+                    <div class="flex-1">
+                        <div class="h-4 bg-slate-200 rounded w-2/3 mb-2"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                    </div>
                 </div>
-                <p id="m-verdes" class="text-green-600 font-bold text-2xl">—</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                </div>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-2">
-                <div class="inline-flex items-center gap-2 mb-1">
-                    <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-                    <p class="text-slate-500 text-xs font-semibold uppercase">Regular</p>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-slate-200"></div>
+                    <div class="flex-1">
+                        <div class="h-4 bg-slate-200 rounded w-2/3 mb-2"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                    </div>
                 </div>
-                <p id="m-amarillos" class="text-yellow-600 font-bold text-2xl">—</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                </div>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-3">
-                <div class="inline-flex items-center gap-2 mb-1">
-                    <span class="w-3 h-3 rounded-full bg-red-500"></span>
-                    <p class="text-slate-500 text-xs font-semibold uppercase">En riesgo</p>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse hidden md:block">
+                <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-slate-200"></div>
+                    <div class="flex-1">
+                        <div class="h-4 bg-slate-200 rounded w-2/3 mb-2"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                    </div>
                 </div>
-                <p id="m-rojos" class="text-red-600 font-bold text-2xl">—</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                </div>
             </div>
         </div>
 
-        <!-- ── Grid de tarjetas inquilinos ── -->
-        <div id="lista-inquilinos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-                <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
-                <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
-                <div class="h-3 bg-slate-200 rounded w-3/4"></div>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-                <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
-                <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
-                <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+        <!-- ╔═══════════════════════════════════════════════════╗ -->
+        <!-- ║           LEYENDA DE SEMÁFORO                     ║ -->
+        <!-- ╚═══════════════════════════════════════════════════╝ -->
+        <div class="mt-6 bg-blue-50 rounded-2xl p-5 border border-blue-100 anim-fade-in-up anim-delay-4">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-traffic-light text-blue-700"></i>
+                </div>
+                <div class="text-xs text-slate-600 leading-relaxed">
+                    <p class="text-blue-900 font-bold text-sm mb-2">Semáforo de confianza</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></span>
+                            <span><strong>Excelente:</strong> Cumplimiento ≥ 90% y máx. 1 vencido.</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-amber-500 flex-shrink-0"></span>
+                            <span><strong>Regular:</strong> Cumplimiento ≥ 60% y máx. 3 vencidos.</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500 flex-shrink-0"></span>
+                            <span><strong>En riesgo:</strong> Cumplimiento &lt; 60% o &gt; 3 vencidos.</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-slate-400 flex-shrink-0"></span>
+                            <span><strong>Sin historial:</strong> Sin pagos pagados ni vencidos (RN-19).</span>
+                        </div>
+                    </div>
+                    <p class="mt-2 text-slate-400">
+                        <strong>RN-18:</strong> Solo se consideran contratos activos, finalizados o terminados.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
+    <!-- /page-template -->
 
+    <!-- Scripts -->
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
     <script src="../js/inquilinos-edificio.js"></script>
 
     <script>
@@ -103,6 +234,7 @@
                 window.location.replace('dashboard-inquilino.html');
                 return;
             }
+
             INQUILINOS_EDIFICIO.init(usuario);
         } catch (err) {
             console.error('[INQUILINOS] init error:', err);
