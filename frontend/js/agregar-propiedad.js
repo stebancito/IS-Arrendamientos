@@ -195,11 +195,25 @@ const AGREGAR_PROPIEDAD = (() => {
     function _bindInputs() {
         const nombre = document.getElementById('prop-nombre');
         const dir    = document.getElementById('prop-direccion');
+        const mapaIframe = document.getElementById('mapa-iframe');
+        let timeoutId; // Variable para el debounce del mapa
+
         nombre.addEventListener('input', () => {
             document.getElementById('preview-nombre').textContent = nombre.value.trim() || 'Sin nombre';
         });
+
         dir.addEventListener('input', () => {
-            document.getElementById('preview-direccion').textContent = dir.value.trim() || 'Dirección…';
+            const val = dir.value.trim();
+            document.getElementById('preview-direccion').textContent = val || 'Dirección…';
+
+            // Debounce: Espera 800ms sin que el usuario escriba antes de recargar el iframe del mapa
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                const query = val ? encodeURIComponent(val) : 'Mexico';
+                if (mapaIframe) {
+                    mapaIframe.src = `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+                }
+            }, 800);
         });
     }
 
@@ -262,6 +276,14 @@ const AGREGAR_PROPIEDAD = (() => {
         document.getElementById('prop-direccion').value   = prop.direccion || '';
         document.getElementById('prop-descripcion').value = prop.descripcion || '';
 
+        // Disparar actualización de mapa al editar
+        if (prop.direccion) {
+            const mapaIframe = document.getElementById('mapa-iframe');
+            if (mapaIframe) {
+                mapaIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(prop.direccion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+            }
+        }
+        
         // Preview
         document.getElementById('preview-nombre').textContent    = prop.nombre || 'Sin nombre';
         document.getElementById('preview-direccion').textContent = prop.direccion || 'Dirección…';

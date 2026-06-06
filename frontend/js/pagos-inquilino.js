@@ -85,7 +85,10 @@ const PAGOS_INQUILINO = (() => {
             .from('contratos')
             .select(`
                 contrato_id, fecha_inicio, fecha_fin, monto_renta, frecuencia_pago, estado,
-                propiedades ( propiedad_id, nombre, direccion, tipo_propiedad )
+                propiedades ( 
+                    propiedad_id, nombre, direccion, tipo_propiedad,
+                    usuarios ( nombre_completo, correo, telefono )
+                )
             `)
             .eq('inquilino_id', _inquilinoId)
             .in('estado', ['ACTIVO', 'TERMINADO', 'FINALIZADO'])
@@ -97,17 +100,7 @@ const PAGOS_INQUILINO = (() => {
         }
         _contratos = data || [];
 
-        // Poblar selector de contrato
-        const sel = document.getElementById('selector-contrato');
-        if (sel && _contratos.length) {
-            sel.innerHTML = _contratos.map((c, i) => {
-                const prop = c.propiedades?.nombre || 'Propiedad';
-                const est = c.estado === 'ACTIVO' ? '● Activo' : c.estado;
-                return `<option value="${c.contrato_id}" ${i === 0 ? 'selected' : ''}>
-                    ${esc(prop)} — ${est}
-                </option>`;
-            }).join('');
-        }
+
 
         // Seleccionar el primero por defecto (o el que venga en la URL)
         const params = new URLSearchParams(window.location.search);
@@ -200,20 +193,105 @@ const PAGOS_INQUILINO = (() => {
         }
     }
 
+   // ──────────────────────────────────────────────────────────────
+    // Custom Selector de contrato y Arrendador
     // ──────────────────────────────────────────────────────────────
-    // Selector de contrato
-    // ──────────────────────────────────────────────────────────────
-    function _bindSelectorContrato() {
-        const sel = document.getElementById('selector-contrato');
-        if (sel) {
-            sel.addEventListener('change', async () => {
-                const id = parseInt(sel.value, 10);
+    function _renderCustomSelector() {
+        const btnContent = document.getElementById('selector-trigger-content');
+        const dropdown = document.getElementById('dropdown-contratos');
+        if (!btnContent || !dropdown) return;
+
+        const iconMap = {
+            'EDIFICIO': 'fa-building', 'DEPARTAMENTO': 'fa-door-closed',
+            'CASA': 'fa-house', 'LOCAL': 'fa-store', 'TERRENO': 'fa-map'
+        };
+
+        if (_contratoActual) {
+            const prop = _contratoActual.propiedades || {};
+            const icon = iconMap[prop.tipo_propiedad] || 'fa-house';
+            
+            // 1. Renderizar el botón seleccionado
+            btnContent.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid ${icon}"></i>
+                </div>
+                <div class="truncate text-left">
+                    <p class="text-sm font-bold text-slate-800 truncate">${esc(prop.nombre)}</p>
+                    <p class="text-[10px] text-slate-500 truncate">${esc(prop.tipo_propiedad)} · ${_contratoActual.estado}</p>
+                </div>
+            `;
+
+            // 2. Renderizar datos del Arrendador
+            const arr = prop.usuarios || {};
+            const iniciales = (arr.nombre_completo || '?').substring(0, 2).toUpperCase();
+            
+            document.getElementById('info-arrendador')?.classList.remove('hidden');
+            document.getElementById('arr-avatar').textContent = iniciales;
+            document.getElementById('arr-nombre').textContent = arr.nombre_completo || 'No registrado';
+            document.getElementById('arr-tel').innerHTML = `<i class="fa-solid fa-phone mr-1"></i>${arr.telefono || 'Sin teléfono'}`;
+            document.getElementById('arr-correo').innerHTML = `<i class="fa-solid fa-envelope mr-1"></i>${arr.correo || 'Sin correo'}`;
+        }
+
+        // 3. Renderizar las opciones del dropdown
+        dropdown.innerHTML = _contratos.map(c => {
+            const p = c.propiedades || {};
+            const i = iconMap[p.tipo_propiedad] || 'fa-house';
+            const isActive = _contratoActual && _contratoActual.contrato_id === c.contrato_id;
+            const activeClass = isActive ? 'bg-blue-50/50 border-l-4 border-blue-500' : 'hover:bg-slate-50';
+            
+            return `
+                <div class="p-3 cursor-pointer transition ${activeClass} border-b border-slate-50 last:border-0" data-id="${c.contrato_id}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg ${isActive ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'} flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid ${i}"></i>
+                        </div>
+                        <div class="truncate text-left">
+                            <p class="text-sm font-bold text-slate-800 truncate">${esc(p.nombre)}</p>
+                            <p class="text-[10px] text-slate-500 truncate">${esc(p.tipo_propiedad)} · ${c.estado}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // 4. Asignar eventos de clic a las opciones
+        dropdown.querySelectorAll('[data-id]').forEach(el => {
+            el.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = parseInt(el.getAttribute('data-id'), 10);
                 _contratoActual = _contratos.find(c => c.contrato_id === id) || null;
+                dropdown.classList.add('hidden');
+                
+                _renderCustomSelector();
                 await _cargarPagosContrato();
                 _renderResumen();
                 _renderBannerProximoPago();
                 _renderTab();
             });
+        });
+    }
+
+    function _bindSelectorContrato() {
+        const btn = document.getElementById('btn-custom-selector');
+        const dropdown = document.getElementById('dropdown-contratos');
+        
+        if (btn && dropdown) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+
+            // Cerrar al hacer clic fuera
+            document.addEventListener('click', (e) => {
+                if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Ejecutamos render la primera vez que se hace bind
+        if (_contratos.length > 0) {
+            _renderCustomSelector();
         }
     }
 
