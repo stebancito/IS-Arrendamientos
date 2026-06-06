@@ -156,10 +156,10 @@ const AGREGAR_PROPIEDAD = (() => {
                 <div class="aspect-square flex flex-col items-center justify-center rounded-xl
                             bg-white border-2 border-green-100 text-green-700 shadow-sm
                             transition hover:border-green-400 hover:shadow-md">
-                    <svg class="w-5 h-5 mb-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    <svg class="w-7 h-7 mb-1 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-8.25M3 12.75l9-7.5 9 7.5M3 12.75l1.5-1.5m6 6h3m-3-3h3m-3-3h3m-6-3H9m12 8.25v8.25m-3-12v12m-3-12v12m-3-12v12m-3-12v12"/>
                     </svg>
-                    <span class="text-[10px] font-semibold">Nuevo ${i}</span>
+                    <span class="text-[10px] font-semibold text-green-800">Depto ${i}</span>
                 </div>
             `);
         }
@@ -276,6 +276,17 @@ const AGREGAR_PROPIEDAD = (() => {
         document.getElementById('prop-direccion').value   = prop.direccion || '';
         document.getElementById('prop-descripcion').value = prop.descripcion || '';
 
+        // Limpiar estados previos de checkboxes antes de asignar los recuperados
+        document.querySelectorAll('input[name="beneficios"]').forEach(cb => cb.checked = false);
+
+        // Poblar checkboxes en base al arreglo JSONB guardado en la fila del inmueble
+        if (prop.beneficios && Array.isArray(prop.beneficios)) {
+            prop.beneficios.forEach(b => {
+                const cb = document.querySelector(`input[name="beneficios"][value="${b}"]`);
+                if (cb) cb.checked = true;
+            });
+        }
+
         // Disparar actualización de mapa al editar
         if (prop.direccion) {
             const mapaIframe = document.getElementById('mapa-iframe');
@@ -283,7 +294,7 @@ const AGREGAR_PROPIEDAD = (() => {
                 mapaIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(prop.direccion)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
             }
         }
-        
+
         // Preview
         document.getElementById('preview-nombre').textContent    = prop.nombre || 'Sin nombre';
         document.getElementById('preview-direccion').textContent = prop.direccion || 'Dirección…';
@@ -495,6 +506,9 @@ const AGREGAR_PROPIEDAD = (() => {
         const padreSel = document.getElementById('propiedad-padre-id').value;
         const propiedadPadreId = padreSel ? parseInt(padreSel, 10) : null;
 
+        // Lectura dinámica y automatizada de checkboxes seleccionados (Listo para N beneficios nuevos)
+        const beneficios = Array.from(document.querySelectorAll('input[name="beneficios"]:checked')).map(cb => cb.value);
+
         // ── Validaciones ──
         if (!nombre || nombre.length < 3) { _alerta('Indica un nombre de al menos 3 caracteres.', 'error'); return; }
         if (!direccion || direccion.length < 5) { _alerta('La dirección es obligatoria.', 'error'); return; }
@@ -504,9 +518,9 @@ const AGREGAR_PROPIEDAD = (() => {
 
         try {
             if (_modoEdicion) {
-                await _guardarEdicion({ nombre, direccion, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId });
+                await _guardarEdicion({ nombre, direccion, beneficios, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId });
             } else {
-                await _guardarNueva({ nombre, direccion, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId });
+                await _guardarNueva({ nombre, direccion, beneficios, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId });
             }
         } catch (err) {
             console.error('[AGREGAR-PROP] Error:', err);
@@ -516,7 +530,7 @@ const AGREGAR_PROPIEDAD = (() => {
     }
 
     // ── Crear nueva propiedad ────────────────────────────────────
-    async function _guardarNueva({ nombre, direccion, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId }) {
+    async function _guardarNueva({ nombre, direccion, beneficios, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId }) {
         // 1. Insertar la propiedad principal
         const { data: insertada, error: errPad } = await window.supabaseClient
             .from('propiedades')
@@ -524,6 +538,7 @@ const AGREGAR_PROPIEDAD = (() => {
                 duenio_id: _usuario.usuario_id,
                 nombre,
                 direccion,
+                beneficios: beneficios,
                 descripcion: descripcion || null,
                 tipo_propiedad: tipo,
                 propiedad_padre_id: tipo === 'DEPARTAMENTO' ? propiedadPadreId : null,
@@ -558,11 +573,12 @@ const AGREGAR_PROPIEDAD = (() => {
     }
 
     // ── Actualizar propiedad existente ───────────────────────────
-    async function _guardarEdicion({ nombre, direccion, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId }) {
+    async function _guardarEdicion({ nombre, direccion, beneficios, descripcion, tipo, cantidadNuevosDeptos, propiedadPadreId }) {
         // 1. UPDATE de la propiedad principal
         const updPayload = {
             nombre,
             direccion,
+            beneficios: beneficios,
             descripcion: descripcion || null,
             tipo_propiedad: tipo,
             propiedad_padre_id: tipo === 'DEPARTAMENTO' ? propiedadPadreId : null,

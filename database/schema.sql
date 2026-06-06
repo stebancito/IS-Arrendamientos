@@ -46,6 +46,7 @@ CREATE TABLE public.propiedades (
   actualizado_en timestamp with time zone NOT NULL DEFAULT now(),
   activa boolean NOT NULL DEFAULT true,
   descripcion text,
+  beneficios jsonb DEFAULT '[]'::jsonb,
   CONSTRAINT propiedades_pkey PRIMARY KEY (propiedad_id),
   CONSTRAINT propiedades_duenio_id_fkey FOREIGN KEY (duenio_id) REFERENCES public.usuarios(usuario_id),
   CONSTRAINT propiedades_propiedad_padre_id_fkey FOREIGN KEY (propiedad_padre_id) REFERENCES public.propiedades(propiedad_id)
@@ -247,3 +248,4 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon;
 
 CREATE POLICY "anon puede todo" ON usuarios FOR ALL USING (true) WITH CHECK (true);
 -- repite para cada tabla, o simplemente asegúrate de que RLS esté desactivado.
+

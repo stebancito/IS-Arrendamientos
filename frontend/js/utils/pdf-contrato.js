@@ -29,6 +29,14 @@ const PDF_CONTRATO = (() => {
     const COLOR_MUTED      = '#64748b';
     const COLOR_DIVIDER    = '#e2e8f0';
 
+    const BENEFICIOS_MAP = {
+        estacionamiento: 'Estacionamiento privado',
+        gimnasio: 'Acceso a gimnasio e instalaciones deportivas',
+        area_social: 'Áreas sociales y de uso común',
+        jardin: 'Zonas ajardinadas',
+        mascotas: 'Permiso explícito para tener mascotas'
+    };
+
     // ─── Helpers de formato ────────────────────────────────────
     const fmtFecha = (d) => {
         if (!d) return '—';
@@ -176,7 +184,7 @@ const PDF_CONTRATO = (() => {
         y += 2;
 
         if (prop.descripcion) {
-            y = _writeText(doc, `Beneficios del inmueble: ${prop.descripcion}`, marginX, y, {
+            y = _writeText(doc, `Descripción: ${prop.descripcion}`, marginX, y, {
                 maxWidth: pageW - marginX * 2, size: 9, color: COLOR_MUTED
             });
             y += 4;
@@ -245,7 +253,18 @@ const PDF_CONTRATO = (() => {
         }
 
         // ╔══════════════ BENEFICIOS / OBSERVACIONES ══════════════╗
-        if (c.beneficios || c.observaciones) {
+        
+        // 1. Preparar el texto de los beneficios dinámicamente
+        let textoBeneficios = '';
+        const arrBeneficios = prop.beneficios || c.beneficios; // Lee el array de la propiedad
+        if (Array.isArray(arrBeneficios) && arrBeneficios.length > 0) {
+            // Convierte el array ['estacionamiento', 'mascotas'] a una lista con viñetas
+            textoBeneficios = arrBeneficios.map(b => '• ' + (BENEFICIOS_MAP[b] || b)).join('\n');
+        } else if (typeof arrBeneficios === 'string' && arrBeneficios.trim() !== '') {
+            textoBeneficios = arrBeneficios; // Fallback de seguridad
+        }
+
+        if (textoBeneficios || c.observaciones) {
             if (y > pageH - 55) { doc.addPage(); y = 25; }
             y += 2;
             doc.setFont('helvetica', 'bold');
@@ -254,14 +273,15 @@ const PDF_CONTRATO = (() => {
             doc.text('IV. BENEFICIOS Y OBSERVACIONES', marginX, y);
             y += 6;
 
-            if (c.beneficios) {
+            if (textoBeneficios) {
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
                 doc.setTextColor(COLOR_TEXT);
-                doc.text('Beneficios incluidos:', marginX, y);
+                doc.text('Beneficios e instalaciones incluidas:', marginX, y);
                 y += 5;
                 doc.setFont('helvetica', 'normal');
-                y = _writeText(doc, c.beneficios, marginX, y, { maxWidth: pageW - marginX * 2, size: 10 });
+                // jsPDF respeta automáticamente los saltos de línea (\n) del string mapeado
+                y = _writeText(doc, textoBeneficios, marginX, y, { maxWidth: pageW - marginX * 2, size: 10 });
                 y += 3;
             }
 
