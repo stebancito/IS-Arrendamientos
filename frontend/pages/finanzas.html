@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Dashboard financiero: ingresos, cobros, morosidad y comportamiento de pago de tus inquilinos." />
+    <meta name="theme-color" content="#0f2557" />
     <title>Finanzas | Arrendamientos App</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,9 +24,9 @@
 <body class="font-sans antialiased bg-slate-50">
 
     <!-- Loader inicial -->
-    <div id="initial-loader"
+    <div id="initial-loader" role="status" aria-live="polite"
          class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4" aria-hidden="true"></div>
         <p class="text-blue-200 text-sm font-medium">Analizando tus finanzas…</p>
     </div>
 
@@ -44,22 +46,29 @@
                     Análisis de ingresos, cobros y morosidad de todas tus propiedades.
                 </p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 self-start sm:self-auto">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
                     <i class="fa-solid fa-database text-[10px]"></i> Datos en tiempo real
                 </span>
+                <a href="pagos.html"
+                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
+                          bg-white border border-slate-200 hover:bg-slate-100
+                          transition text-xs font-semibold">
+                    <i class="fa-solid fa-money-bill-wave text-[10px]"></i>
+                    Registrar pagos
+                </a>
             </div>
         </div>
 
         <!-- ╔═══════════════════════════════════════════════════╗ -->
         <!-- ║       TARJETAS DE MÉTRICAS PRINCIPALES            ║ -->
         <!-- ╚═══════════════════════════════════════════════════╝ -->
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
 
             <!-- Ingresos totales -->
             <div class="stat-card bg-gradient-to-br from-[#0f2557] to-[#1d4ed8] rounded-2xl p-5
                         border border-blue-900/30 shadow-lg shadow-blue-900/20
-                        col-span-2 lg:col-span-1 anim-fade-in-up anim-delay-1">
+                        col-span-2 sm:col-span-1 anim-fade-in-up anim-delay-1">
                 <div class="flex items-center justify-between mb-3">
                     <p class="text-blue-200/80 text-[10px] font-bold uppercase tracking-widest">Ingresos</p>
                     <div class="w-9 h-9 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
@@ -102,7 +111,7 @@
                         <i class="fa-solid fa-percent text-slate-600 text-sm"></i>
                     </div>
                 </div>
-                <p id="metric-morosidad" class="font-extrabold text-2xl lg:text-xl xl:text-2xl">0%</p>
+                <p id="metric-morosidad" title="Porcentaje de cuotas vencidas sobre el total esperado" class="font-extrabold text-2xl lg:text-xl xl:text-2xl">0%</p>
                 <p id="sub-reportados" class="text-slate-400 text-[10px] mt-1.5 font-medium">— por validar</p>
             </div>
 
@@ -114,8 +123,11 @@
                         <i class="fa-solid fa-check-double text-green-600 text-sm"></i>
                     </div>
                 </div>
-                <p id="metric-cumplimiento" class="text-green-600 font-extrabold text-2xl lg:text-xl xl:text-2xl">0%</p>
-                <p class="text-slate-400 text-[10px] mt-1.5 font-medium">tasa de cobro</p>
+                <p id="metric-cumplimiento" title="Porcentaje del monto esperado que ya cobraste" class="text-green-600 font-extrabold text-2xl lg:text-xl xl:text-2xl">0%</p>
+                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                    <div id="metric-cumplimiento-bar" class="h-full bg-green-500 rounded-full transition-all duration-700" style="width:0%"></div>
+                </div>
+                <p class="text-slate-400 text-[10px] mt-1 font-medium">tasa de cobro</p>
             </div>
         </div>
 
@@ -209,6 +221,39 @@
         </div>
 
         <!-- ╔═══════════════════════════════════════════════════╗ -->
+        <!-- ║   COMPORTAMIENTO FINANCIERO DE INQUILINOS         ║ -->
+        <!-- ╚═══════════════════════════════════════════════════╝ -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6 anim-fade-in-up anim-delay-3">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                        <i class="fa-solid fa-ranking-star text-amber-600 text-sm" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-slate-800 font-semibold text-sm">Comportamiento financiero de inquilinos</h4>
+                        <p class="text-slate-400 text-[10px]">Puntaje 0–100 según su historial de pagos. Mayor puntaje = más confiable.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Leyenda: qué significa cada nivel (hace el puntaje auto-explicativo) -->
+            <div class="px-5 py-3 bg-slate-50/60 border-b border-slate-100 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-500">
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></span> <strong class="font-semibold text-slate-600">Excelente</strong> — al día, sin vencidos</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500" aria-hidden="true"></span> <strong class="font-semibold text-slate-600">Regular</strong> — alguna cuota vencida</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500" aria-hidden="true"></span> <strong class="font-semibold text-slate-600">En riesgo</strong> — varias vencidas</span>
+            </div>
+            <div id="tabla-comportamiento" class="p-2 divide-y divide-slate-50">
+                <!-- Skeleton -->
+                <div class="flex items-center gap-3 px-4 py-3 animate-pulse">
+                    <div class="w-12 h-12 rounded-full bg-slate-200"></div>
+                    <div class="flex-1">
+                        <div class="h-3 bg-slate-200 rounded w-1/3 mb-2"></div>
+                        <div class="h-2.5 bg-slate-200 rounded w-1/4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ╔═══════════════════════════════════════════════════╗ -->
         <!-- ║           NOTA DE REGLAS DE NEGOCIO               ║ -->
         <!-- ╚═══════════════════════════════════════════════════╝ -->
         <div class="bg-blue-50 rounded-2xl p-5 border border-blue-100 anim-fade-in-up anim-delay-4">
@@ -252,8 +297,29 @@
             FINANCIERO_ARRENDADOR.init(usuario);
         } catch (err) {
             console.error('[FINANZAS] init error:', err);
+            mostrarErrorCarga();
         }
     })();
+
+    // Muestra un mensaje de error con opción de reintentar si la carga falla.
+    function mostrarErrorCarga() {
+        const loader = document.getElementById('initial-loader');
+        if (loader) loader.remove();
+        const card = document.createElement('div');
+        card.setAttribute('role', 'alert');
+        card.className = 'max-w-md mx-auto mt-10 bg-white rounded-2xl border border-red-100 shadow-sm p-8 text-center';
+        card.innerHTML = `
+            <div class="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-3">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl" aria-hidden="true"></i>
+            </div>
+            <p class="text-slate-800 font-semibold mb-1">No pudimos cargar el panel financiero</p>
+            <p class="text-slate-400 text-sm mb-4">Revisa tu conexión e inténtalo de nuevo.</p>
+            <button type="button" onclick="location.reload()"
+                    class="px-4 py-2 rounded-xl bg-[#0f2557] text-white text-sm font-semibold hover:bg-[#15346f] transition">
+                Reintentar
+            </button>`;
+        (document.getElementById('page-template') || document.body).appendChild(card);
+    }
     </script>
 </body>
 </html>

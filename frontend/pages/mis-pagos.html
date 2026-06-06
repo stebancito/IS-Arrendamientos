@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Consulta tu calendario de pagos, reporta pagos realizados y revisa tu historial." />
+    <meta name="theme-color" content="#0f2557" />
     <title>Mis Pagos | Arrendamientos App</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,9 +21,9 @@
 <body class="font-sans antialiased bg-slate-50">
 
     <!-- Loader inicial -->
-    <div id="initial-loader"
+    <div id="initial-loader" role="status" aria-live="polite"
          class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4" aria-hidden="true"></div>
         <p class="text-blue-200 text-sm font-medium">Cargando tus pagos…</p>
     </div>
 
@@ -67,25 +69,34 @@
                         </div>
 
                         <!-- Tabs de vista -->
-                        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0">
-                            <button class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0" role="tablist" aria-label="Vistas de mis pagos">
+                            <button type="button" role="tab" title="Tus cuotas mes a mes en un calendario"
+                                    class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
                                     data-tab="calendario">
-                                <i class="fa-solid fa-calendar-days mr-1"></i> Calendario
+                                <i class="fa-solid fa-calendar-days mr-1" aria-hidden="true"></i> Calendario
                             </button>
-                            <button class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            <button type="button" role="tab" title="Tus cuotas en forma de lista"
+                                    class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                                     data-tab="lista">
-                                <i class="fa-solid fa-list mr-1"></i> Lista
+                                <i class="fa-solid fa-list mr-1" aria-hidden="true"></i> Lista
                             </button>
-                            <button class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            <button type="button" role="tab" title="Pagos que ya reportaste o que fueron confirmados"
+                                    class="tab-pagos px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
                                     data-tab="historial">
-                                <i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial
+                                <i class="fa-solid fa-clock-rotate-left mr-1" aria-hidden="true"></i> Historial
                             </button>
                         </div>
                     </div>
                 </div>
 
+                <!-- Hint de acción: cómo reportar un pago (lo que más confunde al inquilino) -->
+                <div class="flex items-start gap-2 text-[11px] text-slate-500 px-1 anim-fade-in-up anim-delay-2">
+                    <i class="fa-solid fa-circle-info text-blue-400 mt-0.5" aria-hidden="true"></i>
+                    <p>Toca una cuota <strong class="text-slate-600">pendiente</strong> del calendario para <strong class="text-slate-600">reportar tu pago</strong>. Quedará como <strong class="text-blue-600">reportado</strong> hasta que el arrendador lo confirme.</p>
+                </div>
+
                 <!-- Contenido dinámico de la tab activa -->
-                <div id="tab-content" class="anim-fade-in-up anim-delay-3">
+                <div id="tab-content" class="anim-fade-in-up anim-delay-3" role="status" aria-label="Cargando tus pagos">
                     <!-- Skeleton de carga -->
                     <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
                         <div class="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
@@ -204,8 +215,29 @@
             PAGOS_INQUILINO.init(usuario);
         } catch (err) {
             console.error('[MIS-PAGOS] init error:', err);
+            mostrarErrorCarga('tab-content');
         }
     })();
+
+    // Reemplaza el esqueleto por un mensaje de error con opción de reintentar.
+    function mostrarErrorCarga(contenedorId) {
+        const loader = document.getElementById('initial-loader');
+        if (loader) loader.remove();
+        const cont = document.getElementById(contenedorId) || document.body;
+        cont.removeAttribute('role');
+        cont.innerHTML = `
+            <div role="alert" class="bg-white rounded-2xl border border-red-100 shadow-sm p-8 text-center">
+                <div class="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl" aria-hidden="true"></i>
+                </div>
+                <p class="text-slate-800 font-semibold mb-1">No pudimos cargar tus pagos</p>
+                <p class="text-slate-400 text-sm mb-4">Revisa tu conexión e inténtalo de nuevo.</p>
+                <button type="button" onclick="location.reload()"
+                        class="px-4 py-2 rounded-xl bg-[#0f2557] text-white text-sm font-semibold hover:bg-[#15346f] transition">
+                    Reintentar
+                </button>
+            </div>`;
+    }
     </script>
 </body>
 </html>
