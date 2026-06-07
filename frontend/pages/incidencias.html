@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Gestiona las incidencias reportadas por tus inquilinos y actualiza su estado." />
+    <meta name="theme-color" content="#0f2557" />
+    <title>Incidencias | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+<body class="font-sans antialiased bg-slate-50">
+
+    <!-- Loader inicial -->
+    <div id="initial-loader" role="status" aria-live="polite"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4" aria-hidden="true"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando incidencias…</p>
+    </div>
+
+    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
+    <div id="page-template" class="hidden">
+
+        <!-- ── Cabecera ── -->
+        <div class="mb-5 anim-fade-in-up">
+            <h3 class="text-slate-900 font-bold text-xl">Incidencias</h3>
+            <p class="text-slate-500 text-sm mt-0.5">
+                Atiende los reportes de tus inquilinos y mantén el estado actualizado.
+            </p>
+        </div>
+
+        <!-- ── Tarjetas de resumen ── -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+            <div class="stat-card bg-white rounded-2xl border border-slate-100 shadow-sm p-4 anim-fade-in-up">
+                <div class="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-layer-group"></i> Total
+                </div>
+                <p id="stat-total" class="text-slate-900 font-bold text-2xl">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl border border-slate-100 shadow-sm p-4 anim-fade-in-up anim-delay-1">
+                <div class="flex items-center gap-2 text-red-500 text-[10px] font-bold uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-circle-exclamation"></i> Abiertas
+                </div>
+                <p id="stat-abiertas" class="text-red-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl border border-slate-100 shadow-sm p-4 anim-fade-in-up anim-delay-2">
+                <div class="flex items-center gap-2 text-amber-500 text-[10px] font-bold uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-spinner"></i> En proceso
+                </div>
+                <p id="stat-proceso" class="text-amber-600 font-bold text-2xl">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl border border-slate-100 shadow-sm p-4 anim-fade-in-up anim-delay-3">
+                <div class="flex items-center gap-2 text-green-500 text-[10px] font-bold uppercase tracking-wider mb-1">
+                    <i class="fa-solid fa-circle-check"></i> Resueltas
+                </div>
+                <p id="stat-resueltas" class="text-green-600 font-bold text-2xl">—</p>
+            </div>
+        </div>
+
+        <!-- ── Filtros ── -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 mb-5 anim-fade-in-up anim-delay-1
+                    flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto" role="tablist" aria-label="Filtrar por estado">
+                <button type="button" data-filtro="TODAS"
+                        class="filtro-estado px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm">
+                    Todas
+                </button>
+                <button type="button" data-filtro="ABIERTA"
+                        class="filtro-estado px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700">
+                    Abiertas
+                </button>
+                <button type="button" data-filtro="EN_PROCESO"
+                        class="filtro-estado px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700">
+                    En proceso
+                </button>
+                <button type="button" data-filtro="RESUELTA"
+                        class="filtro-estado px-3 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700">
+                    Resueltas
+                </button>
+            </div>
+            <div class="sm:ml-auto">
+                <select id="filtro-propiedad"
+                        class="input-brand w-full sm:w-auto px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-600">
+                    <option value="TODAS">Todas las propiedades</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ── Lista de incidencias ── -->
+        <div id="inc-lista" class="space-y-3">
+            <!-- Render dinámico por incidencias-arrendador.js -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-4 animate-pulse flex gap-3">
+                <div class="w-11 h-11 rounded-xl bg-slate-200"></div>
+                <div class="flex-1 space-y-2">
+                    <div class="h-4 bg-slate-200 rounded w-1/3"></div>
+                    <div class="h-3 bg-slate-200 rounded w-2/3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /page-template -->
+
+    <!-- Scripts -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/incidencias-arrendador.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'incidencias' });
+            LAYOUT.setPageTitle('Incidencias');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario || usuario.rol !== 'ARRENDADOR') {
+                window.location.replace('dashboard-inquilino.html');
+                return;
+            }
+
+            INCIDENCIAS_ARRENDADOR.init(usuario);
+        } catch (err) {
+            console.error('[INCIDENCIAS] init error:', err);
+            mostrarErrorCarga('inc-lista');
+        }
+    })();
+
+    function mostrarErrorCarga(contenedorId) {
+        const loader = document.getElementById('initial-loader');
+        if (loader) loader.remove();
+        const cont = document.getElementById(contenedorId) || document.body;
+        cont.removeAttribute('role');
+        cont.innerHTML = `
+            <div role="alert" class="bg-white rounded-2xl border border-red-100 shadow-sm p-8 text-center">
+                <div class="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl" aria-hidden="true"></i>
+                </div>
+                <p class="text-slate-800 font-semibold mb-1">No pudimos cargar las incidencias</p>
+                <p class="text-slate-400 text-sm mb-4">Revisa tu conexión e inténtalo de nuevo.</p>
+                <button type="button" onclick="location.reload()"
+                        class="px-4 py-2 rounded-xl bg-[#0f2557] text-white text-sm font-semibold hover:bg-[#15346f] transition">
+                    Reintentar
+                </button>
+            </div>`;
+    }
+    </script>
+</body>
+</html>
