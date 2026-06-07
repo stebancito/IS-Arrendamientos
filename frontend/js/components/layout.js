@@ -32,22 +32,22 @@ const LAYOUT = (() => {
         { icon: ICONS.home,     label: 'Dashboard',     href: 'dashboard-arrendador.html', id: 'dashboard'    },
         { icon: ICONS.building, label: 'Propiedades',   href: 'propiedades.html',          id: 'propiedades'  },
         { icon: ICONS.users,    label: 'Inquilinos',    href: 'inquilinos-edificio.html',  id: 'inquilinos'   },
-        { icon: ICONS.document, label: 'Contratos',     href: 'gestion-contratos.html',            id: 'contratos'    },
+        { icon: ICONS.document, label: 'Contratos',     href: 'gestion-contratos.html',    id: 'contratos'    },
         { icon: ICONS.credit,   label: 'Pagos',         href: 'pagos.html',                id: 'pagos'        },
         { icon: ICONS.chart,    label: 'Finanzas',      href: 'finanzas.html',             id: 'finanzas'     },
         { icon: ICONS.bell,     label: 'Incidencias',   href: 'incidencias.html',          id: 'incidencias'  },
     ];
 
     const NAV_INQUILINO = [
-        { icon: ICONS.home,     label: 'Mi Dashboard',  href: 'dashboard-inquilino.html',  id: 'dashboard'    },
-        { icon: ICONS.mapPin,   label: 'Buscar propiedad', href: 'buscar-propiedad.html',     id: 'buscar'       },
-        { icon: ICONS.document, label: 'Mi Contrato',   href: 'contratos-inquilinos.html',          id: 'contratos'    },
-        { icon: ICONS.credit,   label: 'Mis Pagos',     href: 'mis-pagos.html',            id: 'pagos'        },
-        { icon: ICONS.bell,     label: 'Incidencias',   href: 'mis-incidencias.html',      id: 'incidencias'  },
+        { icon: ICONS.home,     label: 'Mi Dashboard',     href: 'dashboard-inquilino.html', id: 'dashboard'    },
+        { icon: ICONS.mapPin,   label: 'Buscar propiedad', href: 'buscar-propiedad.html',    id: 'buscar'       },
+        { icon: ICONS.document, label: 'Mi Contrato',      href: 'contratos-inquilinos.html',id: 'contratos'    },
+        { icon: ICONS.credit,   label: 'Mis Pagos',        href: 'mis-pagos.html',           id: 'pagos'        },
+        { icon: ICONS.bell,     label: 'Incidencias',      href: 'mis-incidencias.html',     id: 'incidencias'  },
     ];
 
     // ──────────────────────────────────────────────────────────────
-    // Generador del HTML del sidebar
+    // Generador del HTML del sidebar (VERSIÓN COLAPSABLE)
     // ──────────────────────────────────────────────────────────────
     function _buildSidebar(usuario, navItems, activePage) {
         const iniciales = (usuario.nombre_completo || 'U')
@@ -60,14 +60,14 @@ const LAYOUT = (() => {
         const navHTML = navItems.map(item => {
             const active = activePage === item.id;
             return `
-            <a href="${esc(item.href)}" title="${esc(item.label)}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 overflow-hidden
+            <a href="${esc(item.href)}"
+               class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                       ${active
                           ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
                           : 'text-blue-100/80 hover:bg-white/10 hover:text-white'}">
                 <span class="flex-shrink-0 w-5 flex justify-center">${item.icon}</span>
                 <span class="truncate sb-label">${esc(item.label)}</span>
-                ${active ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-white/80 flex-shrink-0 sb-label"></span>' : ''}
+                ${active ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-white/80 sb-label"></span>' : ''}
             </a>`;
         }).join('');
 
@@ -76,10 +76,10 @@ const LAYOUT = (() => {
 
         return `
         <aside id="sidebar"
-               class="group/sidebar fixed left-0 top-0 h-full w-64 lg:w-[4.5rem] lg:hover:w-64 z-40 flex flex-col overflow-hidden
+               class="fixed left-0 top-0 h-full w-64 lg:w-[4.5rem] lg:hover:w-64 z-40 flex flex-col overflow-hidden
                       bg-gradient-to-b from-[#0c1f4a] via-[#0f2557] to-[#1a3680]
                       transform -translate-x-full lg:translate-x-0
-                      transition-[width,transform] duration-300 ease-in-out shadow-2xl lg:hover:shadow-[0_0_60px_rgba(0,0,0,0.4)]">
+                      transition-[width,transform] duration-300 ease-in-out shadow-2xl">
 
             <!-- ── Logo ───────────────────────────────────────── -->
             <div class="flex items-center gap-3 px-4 py-5 border-b border-white/10">
@@ -93,16 +93,18 @@ const LAYOUT = (() => {
                     <p class="text-blue-300/70 text-xs mt-0.5 whitespace-nowrap">Gestión de propiedades</p>
                 </div>
                 <!-- Botón cerrar en móvil -->
-                <button onclick="LAYOUT.cerrarSidebar()" aria-label="Cerrar menú"
+                <button onclick="LAYOUT.cerrarSidebar()"
                         class="ml-auto lg:hidden p-1 rounded-lg text-blue-300/70 hover:text-white hover:bg-white/10 transition-colors">
                     ${ICONS.close}
                 </button>
             </div>
 
-            <!-- ── Pista visual: el menú se expande al pasar el cursor (solo desktop) ── -->
-            <p class="hidden lg:flex group-hover/sidebar:hidden items-center justify-center py-1.5 text-blue-300/40" aria-hidden="true">
-                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-            </p>
+            <!-- ── Pista visual: expandir al hover (solo desktop) ── -->
+            <div class="hidden lg:flex justify-center py-1.5 text-blue-300/40 transition-opacity group-hover/sidebar:opacity-0">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                </svg>
+            </div>
 
             <!-- ── Navegación ─────────────────────────────────── -->
             <nav class="flex-1 px-3 py-2 lg:py-4 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
@@ -128,7 +130,7 @@ const LAYOUT = (() => {
                         </span>
                     </div>
                 </div>
-                <button onclick="AUTH.cerrarSesion()" title="Cerrar sesión"
+                <button onclick="AUTH.cerrarSesion()"
                         class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm overflow-hidden
                                bg-red-600/95 text-white hover:bg-red-500 active:bg-red-700
                                shadow-lg shadow-red-900/40 ring-1 ring-red-400/30
@@ -141,20 +143,20 @@ const LAYOUT = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Generador del HTML completo del layout
+    // Generador del HTML completo del layout (con ajuste de margen)
     // ──────────────────────────────────────────────────────────────
     function _buildLayout(usuario, navItems, activePage, contenidoPagina, iniciales) {
         const sidebar  = _buildSidebar(usuario, navItems, activePage);
         const nombre1  = (usuario.nombre_completo || '').split(' ')[0];
 
-        // Fecha actual localizada (alimenta el topbar dinámico)
-        const _hoy = new Date();
+        // Fecha actual para el topbar
+        const hoy = new Date();
         let fechaLarga = '', fechaCorta = '';
         try {
-            fechaLarga = _hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            fechaCorta = _hoy.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+            fechaLarga = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            fechaCorta = hoy.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
         } catch (_) {
-            fechaCorta = _hoy.toISOString().slice(0, 10);
+            fechaCorta = hoy.toISOString().slice(0, 10);
             fechaLarga = fechaCorta;
         }
 
@@ -167,7 +169,7 @@ const LAYOUT = (() => {
              onclick="LAYOUT.cerrarSidebar()">
         </div>
 
-        <!-- ── Área principal ────────────────────────────────── -->
+        <!-- ── Área principal (margen izquierdo dinámico) ────── -->
         <div id="main-shell" class="lg:ml-[4.5rem] flex flex-col min-h-screen bg-slate-50/80 transition-[margin] duration-300 ease-in-out">
 
             <!-- Top bar -->
@@ -182,9 +184,9 @@ const LAYOUT = (() => {
                     ${ICONS.hamburger}
                 </button>
 
-                <!-- Título de página + fecha dinámica -->
+                <!-- Título + fecha -->
                 <div class="flex-1 min-w-0">
-                    <h2 id="page-title" class="text-slate-800 font-bold text-sm lg:text-base truncate leading-tight anim-fade-in-up">
+                    <h2 id="page-title" class="text-slate-800 font-bold text-sm lg:text-base truncate leading-tight">
                         &nbsp;
                     </h2>
                     <p class="hidden sm:block text-[11px] text-slate-400 font-medium capitalize truncate -mt-0.5">
@@ -192,13 +194,13 @@ const LAYOUT = (() => {
                     </p>
                 </div>
 
-                <!-- Chip de fecha (decorativo, refuerza el contexto) -->
+                <!-- Chip de fecha -->
                 <div class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/80 text-slate-500 text-xs font-semibold">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span>${esc(fechaCorta)}</span>
                 </div>
 
-                <!-- Badge de usuario -->
+                <!-- Badge usuario -->
                 <div class="flex items-center gap-2.5 pl-1 sm:pl-3 sm:border-l sm:border-slate-200">
                     <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center
                                 text-white text-xs font-bold shadow-sm shadow-blue-600/30">
@@ -216,9 +218,6 @@ const LAYOUT = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // PUBLIC: inyectarLayout({ paginaActiva })
-    // ──────────────────────────────────────────────────────────────
-    // ──────────────────────────────────────────────────────────────
     // PRIVADO: cargar dinámicamente un script (una sola vez)
     // ──────────────────────────────────────────────────────────────
     function _cargarScript(src) {
@@ -233,6 +232,36 @@ const LAYOUT = (() => {
         });
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // Proximidad: expande el sidebar cuando el mouse se acerca al borde
+    // izquierdo (solo desktop). Sin errores de async.
+    // ──────────────────────────────────────────────────────────────
+    let _proxActive = false;
+    function _initProximidadSidebar() {
+        if (_proxActive) return;
+        _proxActive = true;
+        let rafId = null;
+        document.addEventListener('mousemove', (e) => {
+            if (rafId) return;
+            rafId = requestAnimationFrame(() => {
+                rafId = null;
+                const sb = document.getElementById('sidebar');
+                if (!sb || window.innerWidth < 1024) return;
+                const x = e.clientX;
+                // Si el cursor está a menos de 120px del borde izquierdo, añadimos una clase temporal.
+                // Para no interferir con el hover normal, usamos una clase que fuerza la expansión.
+                if (x <= 120) {
+                    sb.classList.add('proximity-expand');
+                } else {
+                    sb.classList.remove('proximity-expand');
+                }
+            });
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // PUBLIC: inyectarLayout (con notificaciones + proximidad)
+    // ──────────────────────────────────────────────────────────────
     async function inyectarLayout(opciones = {}) {
         // 1. Verificar sesión
         const session = await window.AUTH.verificarSesion();
@@ -258,7 +287,7 @@ const LAYOUT = (() => {
 
         // 6. Construir y volcar el layout
         document.body.className = 'font-sans antialiased';
-        document.body.innerHTML  = _buildLayout(
+        document.body.innerHTML = _buildLayout(
             usuario,
             navItems,
             opciones.paginaActiva || '',
@@ -266,41 +295,17 @@ const LAYOUT = (() => {
             iniciales
         );
 
-        // 7. Bind: Escape cierra el sidebar en móvil
+        // 7. Escape cierra el sidebar en móvil
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') cerrarSidebar();
         });
 
-        // 8. Desplegar el sidebar por PROXIMIDAD del cursor (solo desktop)
-        _bindProximidadSidebar();
-    }
+        // 8. Inicializar el efecto de proximidad (solo desktop)
+        _initProximidadSidebar();
 
-    // ──────────────────────────────────────────────────────────────
-    // Proximidad: si el puntero se acerca al borde izquierdo, el rail
-    // se expande; si se aleja, se colapsa. Aplica a todas las vistas.
-    // ──────────────────────────────────────────────────────────────
-    let _proxBound = false;
-    function _bindProximidadSidebar() {
-        if (_proxBound) return;
-        _proxBound = true;
-        let raf = null;
-        document.addEventListener('mousemove', (e) => {
-            if (raf) return;
-            const x = e.clientX;
-            raf = requestAnimationFrame(() => {
-                raf = null;
-                const sb = document.getElementById('sidebar');
-                if (!sb || window.innerWidth < 1024) return;
-                // Umbral de proximidad: ~120px desde el borde izquierdo.
-                sb.classList.toggle('sb-open', x <= 120);
-            });
-        });
-        // 8. Montar el centro de notificaciones (campana) en TODAS las páginas.
-        //    Carga toast.js y notificaciones.js si aún no están presentes.
+        // 9. NOTIFICACIONES: exactamente igual que en tu versión main
         try {
             const base = window.location.pathname.includes('/pages/') ? '../' : '';
-            // toast.js es necesario para los avisos emergentes (algunas páginas
-            // como los dashboards no lo incluían).
             if (!window.TOAST) {
                 await _cargarScript(base + 'js/components/toast.js');
             }
@@ -333,10 +338,6 @@ const LAYOUT = (() => {
         if (el) el.textContent = titulo;
     }
 
-    /**
-     * Inyectar contenido en #main-content (útil para módulos que
-     * renderizan dinámicamente).
-     */
     function setContent(html) {
         const el = document.getElementById('main-content');
         if (el) el.innerHTML = html;
@@ -346,3 +347,20 @@ const LAYOUT = (() => {
 })();
 
 window.LAYOUT = LAYOUT;
+
+// Pequeño CSS adicional para que la clase proximity-expand funcione
+// (puedes ponerlo en tu CSS global o en un <style> inline)
+(function addProximityStyle() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #sidebar.proximity-expand {
+            width: 16rem !important; /* 64 en Tailwind */
+        }
+        @media (min-width: 1024px) {
+            #sidebar.proximity-expand + #main-shell {
+                margin-left: 16rem !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+})();
