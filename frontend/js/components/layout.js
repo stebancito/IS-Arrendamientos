@@ -25,6 +25,7 @@ const LAYOUT = (() => {
         logout:     `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>`,
         hamburger:  `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>`,
         close:      `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
+        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
     };
 
     const NAV_ARRENDADOR = [
@@ -39,6 +40,7 @@ const LAYOUT = (() => {
 
     const NAV_INQUILINO = [
         { icon: ICONS.home,     label: 'Mi Dashboard',  href: 'dashboard-inquilino.html',  id: 'dashboard'    },
+        { icon: ICONS.mapPin,   label: 'Buscar propiedad', href: 'buscar-propiedad.html',     id: 'buscar'       },
         { icon: ICONS.document, label: 'Mi Contrato',   href: 'contratos-inquilinos.html',          id: 'contratos'    },
         { icon: ICONS.credit,   label: 'Mis Pagos',     href: 'mis-pagos.html',            id: 'pagos'        },
         { icon: ICONS.bell,     label: 'Incidencias',   href: 'mis-incidencias.html',      id: 'incidencias'  },
@@ -216,6 +218,21 @@ const LAYOUT = (() => {
     // ──────────────────────────────────────────────────────────────
     // PUBLIC: inyectarLayout({ paginaActiva })
     // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    // PRIVADO: cargar dinámicamente un script (una sola vez)
+    // ──────────────────────────────────────────────────────────────
+    function _cargarScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[data-dyn="${src}"]`)) { resolve(); return; }
+            const s = document.createElement('script');
+            s.src = src;
+            s.setAttribute('data-dyn', src);
+            s.onload  = () => resolve();
+            s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+            document.head.appendChild(s);
+        });
+    }
+
     async function inyectarLayout(opciones = {}) {
         // 1. Verificar sesión
         const session = await window.AUTH.verificarSesion();
@@ -278,6 +295,22 @@ const LAYOUT = (() => {
                 sb.classList.toggle('sb-open', x <= 120);
             });
         });
+        // 8. Montar el centro de notificaciones (campana) en TODAS las páginas.
+        //    Carga toast.js y notificaciones.js si aún no están presentes.
+        try {
+            const base = window.location.pathname.includes('/pages/') ? '../' : '';
+            // toast.js es necesario para los avisos emergentes (algunas páginas
+            // como los dashboards no lo incluían).
+            if (!window.TOAST) {
+                await _cargarScript(base + 'js/components/toast.js');
+            }
+            if (!window.NOTIFICACIONES) {
+                await _cargarScript(base + 'js/notificaciones.js');
+            }
+            if (window.NOTIFICACIONES) window.NOTIFICACIONES.init(usuario);
+        } catch (err) {
+            console.warn('[LAYOUT] No se pudo montar el centro de notificaciones:', err);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────

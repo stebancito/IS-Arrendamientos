@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buscar propiedad | Arrendamientos App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/custom.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
+        };
+    </script>
+</head>
+
+<body class="font-sans antialiased bg-slate-50">
+
+    <div id="initial-loader"
+         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
+        <p class="text-blue-200 text-sm font-medium">Cargando propiedades…</p>
+    </div>
+
+    <div id="page-template" class="hidden">
+
+        <!-- ── Cabecera ───────────────────────────────────────── -->
+        <div class="mb-6 anim-fade-in-up">
+            <h3 class="text-slate-900 font-bold text-xl">Buscar propiedad</h3>
+            <p class="text-slate-500 text-sm mt-0.5">Explora las propiedades disponibles y mira su ubicación y Street View.</p>
+        </div>
+
+        <!-- ── Tarjetas resumen ───────────────────────────────── -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Disponibles</p>
+                <p id="m-disponibles" class="text-blue-600 font-bold text-2xl mt-1">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Departamentos</p>
+                <p id="m-deptos" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Casas</p>
+                <p id="m-casas" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+            </div>
+            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Locales / Terrenos</p>
+                <p id="m-otros" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+            </div>
+        </div>
+
+        <!-- ── Filtros ────────────────────────────────────────── -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+                    </svg>
+                    <input id="f-buscar" type="text" placeholder="Buscar por nombre o dirección…"
+                           class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                </div>
+
+                <select id="f-tipo" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                    <option value="">Todos los tipos</option>
+                    <option value="DEPARTAMENTO">Departamentos</option>
+                    <option value="CASA">Casas</option>
+                    <option value="LOCAL">Locales</option>
+                    <option value="TERRENO">Terrenos</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ── Panel (mapa / Street View) + Listado ───────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+
+            <!-- Panel: mapa por defecto, Street View al seleccionar -->
+            <div id="mapa-wrapper" class="lg:col-span-3 lg:order-2">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <div class="min-w-0">
+                        <p id="panel-titulo" class="text-slate-800 font-semibold text-sm truncate">Mapa</p>
+                        <p id="panel-direccion" class="text-slate-400 text-xs truncate"></p>
+                    </div>
+                    <div id="panel-toggle" class="hidden items-center gap-1 bg-slate-100 rounded-xl p-1 flex-shrink-0">
+                        <button id="btn-mapa" type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors text-slate-600">Mapa</button>
+                        <button id="btn-street" type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors text-slate-600">Street View</button>
+                    </div>
+                </div>
+
+                <div class="relative rounded-2xl border border-slate-200 overflow-hidden shadow-sm bg-slate-100">
+                    <iframe id="panel-iframe"
+                            class="w-full h-72 sm:h-96 lg:h-[600px] border-0 block"
+                            loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+                    <div id="panel-hint"
+                         class="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-slate-900/70 to-transparent pointer-events-none">
+                        <p class="text-white text-xs text-center font-medium">Selecciona una propiedad de la lista para ver su Street View.</p>
+                    </div>
+                </div>
+
+                <!-- Detalle de la propiedad seleccionada -->
+                <div id="panel-detalle" class="hidden mt-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 anim-fade-in-up"></div>
+            </div>
+
+            <!-- Listado de propiedades -->
+            <div class="lg:col-span-2 lg:order-1">
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Resultados</p>
+                    <span id="count-resultados" class="text-slate-400 text-xs font-medium">—</span>
+                </div>
+
+                <div id="lista-resultados"
+                     class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 lg:max-h-[760px] lg:overflow-y-auto lg:pr-1">
+                    <!-- Skeletons -->
+                    <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                        <div class="h-4 bg-slate-200 rounded w-1/2 mb-3"></div>
+                        <div class="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                        <div class="h-4 bg-slate-200 rounded w-1/2 mb-3"></div>
+                        <div class="h-3 bg-slate-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-3 bg-slate-200 rounded w-1/3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ── Scripts ──────────────────────────────────────────────── -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/components/layout.js"></script>
+    <script src="../js/components/toast.js"></script>
+    <script src="../js/buscar-propiedad.js"></script>
+
+    <script>
+    (async () => {
+        try {
+            await LAYOUT.inyectarLayout({ paginaActiva: 'buscar' });
+            LAYOUT.setPageTitle('Buscar propiedad');
+
+            const loader = document.getElementById('initial-loader');
+            if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
+
+            const usuario = await AUTH.obtenerUsuarioActual();
+            if (!usuario) { window.location.replace('../index.html'); return; }
+            if (usuario.rol !== 'INQUILINO') {
+                window.location.replace('dashboard-arrendador.html');
+                return;
+            }
+            BUSCAR_PROPIEDAD.init(usuario);
+        } catch (err) {
+            console.error('[BUSCAR-PROPIEDAD] Error de init:', err);
+        }
+    })();
+    </script>
+</body>
+</html>
