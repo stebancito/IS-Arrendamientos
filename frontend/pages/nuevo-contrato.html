@@ -175,11 +175,66 @@
                     </div>
 
                     <div class="ml-0 sm:ml-8 space-y-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1.5">Beneficios incluidos</label>
-                            <textarea id="beneficios" rows="2" maxlength="500"
-                                      placeholder="Ej. Agua, luz, estacionamiento, mantenimiento de áreas comunes…"
-                                      class="input-brand w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm resize-none"></textarea>
+                        <div class="mt-4 pt-4 border-t border-slate-100" id="beneficios-checkboxes">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Beneficios del inmueble</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="estacionamiento" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-square-parking text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Estacionamiento</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center opacity-0 transition-opacity [[data-checked=true]]:opacity-100 hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="gimnasio" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-dumbbell text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Gimnasio</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="area_social" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-champagne-glasses text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Área Social</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="jardin" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-leaf text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Jardín</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
+                                    <input type="checkbox" name="beneficios" value="mascotas" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-paw text-2xl mb-1"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide">Mascotas</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[8px]"></i>
+                                    </div>
+                                </label>
+
+                            </div>
                         </div>
 
                         <div>

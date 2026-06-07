@@ -302,6 +302,7 @@ const BUSCAR_PROPIEDAD = (() => {
     // ---------- MODAL DETALLES Y SOLICITUD ----------
     function abrirModal(propId) {
         const prop = _unidadesFiltradas.find(p => String(p.propiedad_id) === String(propId));
+        console.log('Abriendo modal para propiedad:', prop);
         if (!prop) return;
         _seleccionar(propId); // Para que se centre en el mapa
 
@@ -376,9 +377,13 @@ const BUSCAR_PROPIEDAD = (() => {
                             <div class="w-10 h-10 bg-white rounded-full shadow flex items-center justify-center text-blue-600 text-lg border border-slate-200">
                                 <i class="fas fa-user-tie"></i>
                             </div>
-                            <div>
+                            <div class="flex flex-col">
                                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Arrendador</p>
-                                <p class="text-sm font-extrabold text-slate-800">${esc(prop.duenio.nombre_completo)}</p>
+                                <p class="text-sm font-extrabold text-slate-800 leading-tight">${esc(prop.duenio.nombre_completo)}</p>
+                                <div class="flex items-center gap-3 mt-1">
+                                    ${prop.duenio.telefono ? `<a href="tel:${esc(prop.duenio.telefono)}" class="text-[11px] font-bold text-green-600 hover:text-green-700 transition-colors"><i class="fas fa-phone-alt mr-1"></i>${esc(prop.duenio.telefono)}</a>` : ''}
+                                    ${prop.duenio.correo ? `<a href="mailto:${esc(prop.duenio.correo)}" class="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors"><i class="fas fa-envelope mr-1"></i>${esc(prop.duenio.correo)}</a>` : ''}
+                                </div>
                             </div>
                         </div>
                         

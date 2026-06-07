@@ -401,7 +401,14 @@ const NOTIFICACIONES = (() => {
                 break;
             case 'RECORDATORIO':
             default:
-                page = rol === 'ARRENDADOR' ? 'dashboard-arrendador.html' : 'dashboard-inquilino.html';
+                // Si la notificación trae una URL de acción específica (como la solicitud de contrato)
+                if (md.url_accion) {
+                    const partes = md.url_accion.split('?');
+                    page = partes[0];
+                    params = partes[1] ? '?' + partes[1] : '';
+                } else {
+                    page = rol === 'ARRENDADOR' ? 'dashboard-arrendador.html' : 'dashboard-inquilino.html';
+                }
                 break;
         }
         return page ? (prefijo + page + params) : null;
