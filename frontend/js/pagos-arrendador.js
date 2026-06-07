@@ -34,6 +34,8 @@ const PAGOS_ARRENDADOR = (() => {
     let _pagosReportados = [];     // pagos en estado REPORTADO
     let _todosLosPagos = [];       // todos los pagos para historial
     let _tabActiva = 'validar';
+    let _histPage = 0;             // página actual del historial
+    const _HIST_PER_PAGE = 8;      // resultados por página en historial
 
     // ──────────────────────────────────────────────────────────────
     // INIT
@@ -217,9 +219,11 @@ const PAGOS_ARRENDADOR = (() => {
     // Filtros
     // ──────────────────────────────────────────────────────────────
     function _bindFiltros() {
+        // Al cambiar cualquier filtro, volver a la primera página del historial
+        const handler = () => { _histPage = 0; _renderTab(); };
         ['f-buscar', 'f-estado'].forEach(id => {
-            document.getElementById(id)?.addEventListener('input',  _renderTab);
-            document.getElementById(id)?.addEventListener('change', _renderTab);
+            document.getElementById(id)?.addEventListener('input',  handler);
+            document.getElementById(id)?.addEventListener('change', handler);
         });
     }
 
@@ -771,13 +775,21 @@ const PAGOS_ARRENDADOR = (() => {
                 throw errUpd;
             }
 
-            if (window.TOAST) TOAST.success('Pago registrado y validado correctamente.');
+            if (window.TOAST) TOAST.success('Pago registrado y validado. Lo verás en el Historial.');
 
-            // Refrescar
+            // Refrescar datos
             await _cargarPagosReportados();
             await _cargarTodosLosPagos();
             _renderMetricas();
+
+            // Un pago manual queda validado de inmediato (no pasa por
+            // "Por validar"). Llevamos al usuario al Historial para que vea
+            // el pago recién registrado y no piense que se perdió.
+            _histPage = 0;
+            _tabActiva = 'historial';
+            _pintarTabActiva();
             _renderTab();
+            document.getElementById('tab-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } catch (err) {
             console.error('[PAGOS-ARR] Error registro manual:', err);
@@ -811,8 +823,22 @@ const PAGOS_ARRENDADOR = (() => {
             return;
         }
 
-        let html = `<div class="space-y-2">`;
-        lista.forEach(p => {
+        // Paginación
+        const totalPages = Math.max(1, Math.ceil(lista.length / _HIST_PER_PAGE));
+        if (_histPage >= totalPages) _histPage = totalPages - 1;
+        if (_histPage < 0) _histPage = 0;
+        const inicio = _histPage * _HIST_PER_PAGE;
+        const pagina = lista.slice(inicio, inicio + _HIST_PER_PAGE);
+
+        let html = `
+            <div class="flex items-center justify-between gap-2 mb-2 px-1">
+                <p class="text-[11px] text-slate-400 font-medium">
+                    <i class="fa-solid fa-receipt mr-1"></i>${lista.length} pago(s) encontrados
+                </p>
+                <p class="text-[11px] text-slate-400 font-medium">Página ${_histPage + 1} de ${totalPages}</p>
+            </div>
+            <div class="space-y-2">`;
+        pagina.forEach(p => {
             const c = H.colorPorEstado(p.estado);
             const inqNombre = p.contratos?.inquilinos?.usuarios?.nombre_completo || 'Inquilino';
             const propNombre = p.contratos?.propiedades?.nombre || 'Propiedad';
@@ -842,7 +868,38 @@ const PAGOS_ARRENDADOR = (() => {
                 </div>`;
         });
         html += `</div>`;
+
+        // Controles de paginación
+        if (totalPages > 1) {
+            let nums = '';
+            const maxBtns = 7;
+            let desde = Math.max(0, _histPage - 3);
+            let hasta = Math.min(totalPages, desde + maxBtns);
+            desde = Math.max(0, hasta - maxBtns);
+            for (let i = desde; i < hasta; i++) {
+                nums += `<button class="page-btn" data-page="${i}" aria-current="${i === _histPage ? 'true' : 'false'}">${i + 1}</button>`;
+            }
+            html += `
+                <div class="flex items-center justify-center gap-1.5 mt-4">
+                    <button class="page-btn" data-page="prev" ${_histPage === 0 ? 'disabled' : ''} aria-label="Anterior">‹</button>
+                    ${nums}
+                    <button class="page-btn" data-page="next" ${_histPage >= totalPages - 1 ? 'disabled' : ''} aria-label="Siguiente">›</button>
+                </div>`;
+        }
+
         cont.innerHTML = html;
+
+        // Bind de paginación
+        cont.querySelectorAll('.page-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const v = btn.getAttribute('data-page');
+                if (v === 'prev') _histPage = Math.max(0, _histPage - 1);
+                else if (v === 'next') _histPage = _histPage + 1;
+                else _histPage = parseInt(v, 10);
+                _renderHistorial();
+                document.getElementById('tab-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
     }
 
     // ──────────────────────────────────────────────────────────────
