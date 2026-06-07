@@ -1,377 +1,452 @@
 // ================================================================
-// buscar-propiedad.js  –  Página "Buscar propiedad" (INQUILINO)
-// ================================================================
-// Lista las propiedades disponibles para rentar (activas y sin
-// contrato ACTIVO). El panel de la DERECHA muestra un mapa; al
-// hacer clic en una tarjeta de la IZQUIERDA, ese panel cambia al
-// Street View de la dirección de la propiedad, y debajo se muestran
-// los datos del inmueble y del arrendador.
-//
-// 100% con iframes embebidos de Google Maps → NO requiere API key.
-// Para posicionar el Street View se necesitan coordenadas, que se
-// obtienen con OpenStreetMap/Nominatim (gratuito, sin key) y se
-// cachean en localStorage. El modo "Mapa" funciona solo con la
-// dirección, sin geocodificar.
+// buscar-propiedad.js  –  Búsqueda, Estimación de Precio y Solicitudes
 // ================================================================
 
 const BUSCAR_PROPIEDAD = (() => {
 
-    const CIUDAD_DEFAULT = 'Ciudad de México';   // mapa inicial del panel
-    const GEO_CACHE_KEY  = 'bp_geocache_v1';
-
+    // ---------- CONSTANTES ----------
     const TIPO_META = {
-        DEPARTAMENTO: { label: 'Departamento', clase: 'bg-blue-100 text-blue-700' },
-        CASA:         { label: 'Casa',         clase: 'bg-green-100 text-green-700' },
-        LOCAL:        { label: 'Local',        clase: 'bg-purple-100 text-purple-700' },
-        TERRENO:      { label: 'Terreno',      clase: 'bg-amber-100 text-amber-700' },
-        EDIFICIO:     { label: 'Edificio',     clase: 'bg-slate-100 text-slate-700' },
+        DEPARTAMENTO: { label: 'Departamento', icono: 'fa-building', clase: 'bg-blue-100 text-blue-700 border-blue-200' },
+        CASA:         { label: 'Casa',         icono: 'fa-house', clase: 'bg-green-100 text-green-700 border-green-200' },
+        LOCAL:        { label: 'Local',        icono: 'fa-store', clase: 'bg-purple-100 text-purple-700 border-purple-200' },
+        TERRENO:      { label: 'Terreno',      icono: 'fa-tree',  clase: 'bg-amber-100 text-amber-700 border-amber-200' },
+        EDIFICIO:     { label: 'Edificio',     icono: 'fa-city',  clase: 'bg-slate-100 text-slate-700 border-slate-200' },
     };
 
     let _usuario = null;
-    let _unidades = [];          // propiedades disponibles (planas)
+    let _inquilinoId = null; // ID real del inquilino de la tabla inquilinos
+    let _unidades = [];                 
+    let _unidadesFiltradas = [];       
+    let _seleccion = null;
+
+    // Filtros actuales
     let _filtroTexto = '';
     let _filtroTipo = '';
-    let _seleccion = null;       // propiedad seleccionada
-    let _modoPanel = 'mapa';     // 'mapa' | 'street'
+    let _filtroPrecioMin = null;
+    let _filtroPrecioMax = null;
+    let _filtroBeneficios = new Set();   
 
-    // ── INIT ────────────────────────────────────────────────────
-    async function init(usuario) {
-        _usuario = usuario;
-        _bindFiltros();
-        _bindListaClicks();
-        _bindPanelToggle();
-        _renderPanel();          // estado inicial: mapa de la ciudad + hint
-        await _cargarDatos();
+    // ---------- HELPERS ----------
+    function esc(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, m => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[m]));
     }
 
-    // ── Carga de datos ──────────────────────────────────────────
-    async function _cargarDatos() {
-        const cont = document.getElementById('lista-resultados');
+    // Mapeo inteligente de palabras a iconos de FontAwesome
+    function _getIconoBeneficio(nombre) {
+        const str = nombre.toLowerCase();
+        if(str.includes('wifi') || str.includes('internet')) return 'fa-wifi';
+        if(str.includes('estacionamiento') || str.includes('cochera')) return 'fa-car';
+        if(str.includes('muebl')) return 'fa-couch';
+        if(str.includes('mascota') || str.includes('perro')) return 'fa-paw';
+        if(str.includes('seguridad') || str.includes('vigilancia')) return 'fa-shield-halved';
+        if(str.includes('gimnasio') || str.includes('gym')) return 'fa-dumbbell';
+        if(str.includes('alberca') || str.includes('piscina')) return 'fa-water-ladder';
+        if(str.includes('jardin') || str.includes('verde')) return 'fa-tree';
+        if(str.includes('elevador') || str.includes('ascensor')) return 'fa-elevator';
+        if(str.includes('balcon') || str.includes('terraza')) return 'fa-cloud-sun';
+        if(str.includes('limpieza')) return 'fa-broom';
+        return 'fa-check'; // Icono por defecto
+    }
 
-        // Propiedades activas (excluimos EDIFICIO: es contenedor, no se renta)
-        const { data: props, error } = await window.supabaseClient
-            .from('propiedades')
-            .select(`
-                propiedad_id, nombre, direccion, tipo_propiedad, descripcion, beneficios, propiedad_padre_id,
-                duenio:usuarios!propiedades_duenio_id_fkey ( usuario_id, nombre_completo, correo, telefono )
-            `)
-            .eq('activa', true)
-            .neq('tipo_propiedad', 'EDIFICIO')
-            .order('creado_en', { ascending: false });
+    // Formateador de moneda
+    function formatoDinero(cantidad) {
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(cantidad);
+    }
 
-        if (error) {
-            console.error('[BUSCAR-PROP] Error al cargar propiedades:', error);
-            if (cont) cont.innerHTML = _bloqueMensaje('No se pudieron cargar las propiedades. Intenta de nuevo.');
-            return;
-        }
-
-        // Marcar las ocupadas (con contrato ACTIVO) para excluirlas
-        const ids = (props || []).map(p => p.propiedad_id);
-        let ocupados = new Set();
-        if (ids.length) {
-            const { data: contratos } = await window.supabaseClient
-                .from('contratos')
-                .select('propiedad_id')
-                .eq('estado', 'ACTIVO')
-                .in('propiedad_id', ids);
-            ocupados = new Set((contratos || []).map(c => c.propiedad_id));
-        }
-
-        _unidades = (props || []).filter(p => !ocupados.has(p.propiedad_id));
-
-        _renderStats();
+    // ---------- INICIALIZACIÓN ----------
+    async function init(usuario) {
+        _usuario = usuario;
+        await _obtenerInquilinoId();
+        await _cargarDatosYCalcularPrecios();           
+        _extraerBeneficiosUnicos();     
+        _bindFiltros();
+        _bindListaClicks();
         _aplicarFiltros();
     }
 
-    // ── Filtros ─────────────────────────────────────────────────
-    function _bindFiltros() {
-        const fBuscar = document.getElementById('f-buscar');
-        const fTipo   = document.getElementById('f-tipo');
-        if (fBuscar) fBuscar.addEventListener('input',  e => { _filtroTexto = e.target.value; _aplicarFiltros(); });
-        if (fTipo)   fTipo.addEventListener('change',   e => { _filtroTipo  = e.target.value; _aplicarFiltros(); });
+    async function _obtenerInquilinoId() {
+        const { data, error } = await window.supabaseClient
+            .from('inquilinos')
+            .select('inquilino_id')
+            .eq('usuario_id', _usuario.usuario_id)
+            .single();
+        if (data) _inquilinoId = data.inquilino_id;
     }
 
-    function _unidadesFiltradas() {
-        const texto = _filtroTexto.trim().toLowerCase();
-        const tipo  = _filtroTipo;
-        return _unidades.filter(u => {
-            const okTexto = !texto
-                || (u.nombre    || '').toLowerCase().includes(texto)
-                || (u.direccion || '').toLowerCase().includes(texto);
-            const okTipo = !tipo || u.tipo_propiedad === tipo;
-            return okTexto && okTipo;
+    // ---------- LÓGICA CORE: Carga y Estimación de Precios ----------
+    async function _cargarDatosYCalcularPrecios() {
+        try {
+            // 1. Cargar todas las propiedades activas
+            const { data: props, error: errP } = await window.supabaseClient
+                .from('propiedades')
+                .select(`
+                    propiedad_id, nombre, direccion, tipo_propiedad, descripcion, beneficios,
+                    propiedad_padre_id,
+                    duenio:usuarios!propiedades_duenio_id_fkey ( usuario_id, nombre_completo, correo, telefono )
+                `)
+                .eq('activa', true)
+                .neq('tipo_propiedad', 'EDIFICIO')
+                .order('creado_en', { ascending: false });
+
+            if (errP) throw errP;
+
+            // 2. Cargar TODOS los contratos históricos para deducir precios matemáticamente
+            const { data: contratos, error: errC } = await window.supabaseClient
+                .from('contratos')
+                .select('propiedad_id, monto_renta, estado');
+            
+            if (errC) throw errC;
+
+            // Mapear rentas históricas por ID de propiedad
+            const rentasPorPropiedad = {};
+            // Mapear qué propiedades pertenecen a qué edificio padre
+            const propsPorPadre = {};
+
+            contratos.forEach(c => {
+                if(!rentasPorPropiedad[c.propiedad_id]) rentasPorPropiedad[c.propiedad_id] = [];
+                if(c.monto_renta > 0) rentasPorPropiedad[c.propiedad_id].push(Number(c.monto_renta));
+            });
+
+            props.forEach(p => {
+                if (p.propiedad_padre_id) {
+                    if(!propsPorPadre[p.propiedad_padre_id]) propsPorPadre[p.propiedad_padre_id] = [];
+                    propsPorPadre[p.propiedad_padre_id].push(p.propiedad_id);
+                }
+            });
+
+            // 3. Evaluar cada propiedad
+            _unidades = props.map(p => {
+                // Sacar el historial de rentas de ESTA propiedad
+                let rentas = rentasPorPropiedad[p.propiedad_id] || [];
+                
+                // Si nunca se ha rentado, buscar propiedades hermanas (ej. otros depas del mismo edificio)
+                if (rentas.length === 0 && p.propiedad_padre_id && propsPorPadre[p.propiedad_padre_id]) {
+                    propsPorPadre[p.propiedad_padre_id].forEach(hermanoId => {
+                        if (rentasPorPropiedad[hermanoId]) {
+                            rentas = rentas.concat(rentasPorPropiedad[hermanoId]);
+                        }
+                    });
+                }
+
+                // Calcular promedio
+                let precio_estimado = null;
+                if (rentas.length > 0) {
+                    const sum = rentas.reduce((a,b) => a + b, 0);
+                    precio_estimado = Math.round(sum / rentas.length);
+                }
+
+                // Verificar si está ocupada actualmente
+                const ocupada = contratos.some(c => c.propiedad_id === p.propiedad_id && c.estado === 'ACTIVO');
+
+                return { ...p, precio_estimado, ocupada };
+            }).filter(p => !p.ocupada); // Excluir las ocupadas
+            
+        } catch (err) {
+            console.error('[BUSCAR-PROP] Error:', err);
+            TOAST?.error('No se pudieron cargar los datos.');
+        }
+    }
+
+    // ---------- UI: Beneficios Dinámicos con Iconos ----------
+    function _extraerBeneficiosUnicos() {
+        // Vinculamos los eventos a los checkboxes estáticos que pasaste en el HTML
+        document.querySelectorAll('input[name="beneficios"]').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const val = e.target.value.toLowerCase();
+                if (e.target.checked) {
+                    _filtroBeneficios.add(val);
+                } else {
+                    _filtroBeneficios.delete(val);
+                }
+                _aplicarFiltros();
+            });
+        });
+    }
+
+    // ---------- FILTROS ----------
+    function _bindFiltros() {
+        ['f-buscar', 'f-tipo', 'f-precio-min', 'f-precio-max'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('input', () => {
+                if(id==='f-buscar') _filtroTexto = el.value;
+                if(id==='f-tipo') _filtroTipo = el.value;
+                if(id==='f-precio-min') _filtroPrecioMin = el.value ? Number(el.value) : null;
+                if(id==='f-precio-max') _filtroPrecioMax = el.value ? Number(el.value) : null;
+                _aplicarFiltros();
+            });
         });
     }
 
     function _aplicarFiltros() {
+        _unidadesFiltradas = _unidades.filter(prop => {
+            const texto = _filtroTexto.trim().toLowerCase();
+            if (texto && !(prop.nombre?.toLowerCase().includes(texto) || prop.direccion?.toLowerCase().includes(texto))) return false;
+            if (_filtroTipo && prop.tipo_propiedad !== _filtroTipo) return false;
+
+            // Filtro de precio (Solo aplica si la propiedad tiene un estimado, si no, se oculta para no mentir)
+            const pEst = prop.precio_estimado;
+            if (_filtroPrecioMin !== null && (pEst === null || pEst < _filtroPrecioMin)) return false;
+            if (_filtroPrecioMax !== null && (pEst === null || pEst > _filtroPrecioMax)) return false;
+
+            // Filtro flexible de beneficios
+            if (_filtroBeneficios.size > 0) {
+                // Convertimos todos los beneficios que vengan de la BD a un solo string en minúsculas
+                const propBeneficiosStr = Array.isArray(prop.beneficios) 
+                    ? prop.beneficios.join(' ').toLowerCase() 
+                    : '';
+                
+                let hasAll = true;
+                for (let b of _filtroBeneficios) {
+                    // Reemplazamos guiones bajos por espacios ("area_social" -> "area social")
+                    const keyword = b.replace('_', ' ');
+                    if (!propBeneficiosStr.includes(keyword)) { 
+                        hasAll = false; 
+                        break; 
+                    }
+                }
+                if (!hasAll) return false;
+            }
+            return true;
+        });
+
+        _renderLista();
+        const cont = document.getElementById('count-resultados');
+        if(cont) cont.textContent = `${_unidadesFiltradas.length} Resultados`;
+    }
+
+    // ---------- RENDER DE TARJETAS ----------
+    function _renderLista() {
         const cont = document.getElementById('lista-resultados');
-        const lista = _unidadesFiltradas();
-
-        if (cont) {
-            cont.innerHTML = lista.length
-                ? lista.map(u => _cardUnidad(u)).join('')
-                : _bloqueMensaje('No hay propiedades que coincidan con tu búsqueda.');
+        if (!cont) return;
+        if (_unidadesFiltradas.length === 0) {
+            cont.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500">No encontramos coincidencias</div>`;
+            return;
         }
-        _set('count-resultados', lista.length === 1 ? '1 resultado' : `${lista.length} resultados`);
-
-        // Reaplicar resaltado si la propiedad seleccionada sigue visible
+        cont.innerHTML = _unidadesFiltradas.map(prop => _cardUnidad(prop)).join('');
         if (_seleccion) _resaltarTarjeta(_seleccion.propiedad_id);
     }
 
-    // ── Tarjeta ─────────────────────────────────────────────────
-    function _cardUnidad(u) {
-        const meta  = TIPO_META[u.tipo_propiedad] || { label: u.tipo_propiedad, clase: 'bg-slate-100 text-slate-700' };
-        const benes = Array.isArray(u.beneficios) ? u.beneficios.slice(0, 4) : [];
-
-        const benesHTML = benes.length
-            ? `<div class="flex flex-wrap gap-1 mt-2">
-                   ${benes.map(b => `<span class="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium">${esc(b)}</span>`).join('')}
-               </div>`
-            : '';
-
+    function _cardUnidad(p) {
+        const meta = TIPO_META[p.tipo_propiedad] || { label: p.tipo_propiedad, icono: 'fa-building', clase: 'bg-slate-100 text-slate-700' };
+        
+        // Mostrar etiqueta inteligente de precio
+        const precioBadge = p.precio_estimado 
+            ? `<span class="text-blue-700 bg-blue-50 px-2 py-1 rounded-lg font-bold text-xs border border-blue-100 shadow-sm" title="Promedio histórico">Est. ${formatoDinero(p.precio_estimado)}</span>`
+            : `<span class="text-slate-600 bg-slate-100 px-2 py-1 rounded-lg font-bold text-[10px] border border-slate-200">Consultar precio</span>`;
+            
         return `
-        <div data-prop="${u.propiedad_id}" tabindex="0" role="button"
-             class="prop-card stat-card bg-white rounded-2xl border border-slate-100 shadow-sm p-4 cursor-pointer transition
-                    hover:border-blue-300 anim-fade-in-up">
-            <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                    <p class="text-slate-900 font-bold text-sm truncate">${esc(u.nombre)}</p>
-                    <p class="text-slate-500 text-xs mt-0.5 flex items-start gap-1">
-                        <svg class="w-3.5 h-3.5 mt-px flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        <span class="truncate">${esc(u.direccion)}</span>
+        <div data-prop="${p.propiedad_id}" class="prop-card relative bg-white rounded-2xl border border-slate-200 shadow-sm p-4 cursor-pointer transition-all hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 group">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-blue-500 transition-colors"></div>
+            <div class="flex items-start justify-between gap-2 pl-1">
+                <div class="min-w-0 flex-1">
+                    <p class="text-slate-900 font-extrabold text-base truncate">${esc(p.nombre)}</p>
+                    <p class="text-slate-500 text-xs mt-1 flex items-start gap-1.5">
+                        <i class="fas fa-map-marker-alt text-red-400 text-[10px] mt-0.5"></i>
+                        <span class="line-clamp-2 leading-tight">${esc(p.direccion)}</span>
                     </p>
                 </div>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0 ${meta.clase}">
-                    ${esc(meta.label)}
-                </span>
+                <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase ${meta.clase}">
+                        <i class="fas ${meta.icono}"></i> ${esc(meta.label)}
+                    </span>
+                    ${precioBadge}
+                </div>
             </div>
-
-            ${u.descripcion ? `<p class="text-slate-600 text-xs mt-2 line-clamp-2">${esc(u.descripcion)}</p>` : ''}
-            ${benesHTML}
-
-            <div class="flex items-center justify-end mt-3 pt-3 border-t border-slate-100">
-                <span class="text-blue-600 text-xs font-medium whitespace-nowrap">Ver Street View →</span>
+            
+            <div class="pl-1 mt-3 flex justify-between items-end">
+                <div class="flex gap-1.5">
+                    ${(p.beneficios || []).slice(0,3).map(b => `<span class="px-2 py-1 rounded border border-slate-200 bg-slate-50 text-[10px] text-slate-600 font-bold" title="${esc(b)}"><i class="fas ${_getIconoBeneficio(b)}"></i></span>`).join('')}
+                    ${p.beneficios && p.beneficios.length > 3 ? `<span class="px-2 py-1 rounded border border-slate-100 bg-slate-50 text-[10px] text-slate-400 font-bold">+${p.beneficios.length - 3}</span>` : ''}
+                </div>
+                <button onclick="BUSCAR_PROPIEDAD.abrirModal('${p.propiedad_id}')" class="text-blue-600 hover:text-blue-800 text-xs font-bold transition-colors">Ver Detalles <i class="fas fa-arrow-right ml-1"></i></button>
             </div>
         </div>`;
     }
 
-    // ── Selección de propiedad ──────────────────────────────────
+    // ---------- SELECCIÓN Y MAPA ----------
     function _bindListaClicks() {
         const cont = document.getElementById('lista-resultados');
         if (!cont) return;
-
         cont.addEventListener('click', (e) => {
             const card = e.target.closest('[data-prop]');
-            if (card) _seleccionar(card.getAttribute('data-prop'));
-        });
-        cont.addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            const card = e.target.closest('[data-prop]');
-            if (card) { e.preventDefault(); _seleccionar(card.getAttribute('data-prop')); }
+            // Evitar doble accion si dio clic en el botón de "Ver Detalles"
+            if (card && !e.target.closest('button')) _seleccionar(card.getAttribute('data-prop'));
         });
     }
 
     function _seleccionar(propId) {
-        const u = _unidades.find(x => String(x.propiedad_id) === String(propId));
-        if (!u) return;
-        _seleccion = u;
-        _modoPanel = 'street';        // al hacer clic mostramos Street View
+        const prop = _unidadesFiltradas.find(p => String(p.propiedad_id) === String(propId));
+        if (!prop) return;
+        _seleccion = prop;
         _resaltarTarjeta(propId);
-        _renderPanel();
-        // En móvil, llevar la vista al panel del mapa
-        document.getElementById('mapa-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        const mapIframe = document.getElementById('map-iframe');
+        if (mapIframe && prop.direccion) {
+            mapIframe.src = `https://maps.google.com/maps?q=$${encodeURIComponent(prop.direccion)}&t=m&z=16&output=embed&iwloc=near`;
+        }
     }
 
     function _resaltarTarjeta(propId) {
         document.querySelectorAll('#lista-resultados [data-prop]').forEach(el => {
-            const on = el.getAttribute('data-prop') === String(propId);
-            el.classList.toggle('ring-2', on);
-            el.classList.toggle('ring-blue-500', on);
-            el.classList.toggle('border-blue-300', on);
+            const isSelected = el.getAttribute('data-prop') === String(propId);
+            el.classList.toggle('ring-2', isSelected);
+            el.classList.toggle('ring-blue-500', isSelected);
+            el.classList.toggle('border-blue-500', isSelected);
+            el.classList.toggle('bg-blue-50/30', isSelected);
+            const cinta = el.querySelector('.absolute');
+            if(cinta) cinta.classList.toggle('bg-blue-600', isSelected);
         });
     }
 
-    // ── Panel derecho (iframe + toggle + detalle) ───────────────
-    function _bindPanelToggle() {
-        document.getElementById('btn-mapa')?.addEventListener('click',   () => { _modoPanel = 'mapa';   _renderPanel(); });
-        document.getElementById('btn-street')?.addEventListener('click', () => { _modoPanel = 'street'; _renderPanel(); });
+    // ---------- MODAL DETALLES Y SOLICITUD ----------
+    function abrirModal(propId) {
+        const prop = _unidadesFiltradas.find(p => String(p.propiedad_id) === String(propId));
+        console.log('Abriendo modal para propiedad:', prop);
+        if (!prop) return;
+        _seleccionar(propId); // Para que se centre en el mapa
+
+        // FIX: Si el contenedor no existe en el HTML, lo creamos dinámicamente
+        let contenedor = document.getElementById('modal-container');
+        if (!contenedor) {
+            contenedor = document.createElement('div');
+            contenedor.id = 'modal-container';
+            document.body.appendChild(contenedor);
+        }
+
+        const meta = TIPO_META[prop.tipo_propiedad] || { label: prop.tipo_propiedad, icono: 'fa-building', clase: 'text-slate-600' }
+        
+        let benesHtml = (prop.beneficios || []).map(b => `
+            <div class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                <i class="fas ${_getIconoBeneficio(b)} text-blue-500 text-lg mb-1"></i>
+                <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">${esc(b)}</span>
+            </div>
+        `).join('');
+
+        if(!benesHtml) benesHtml = '<p class="text-sm text-slate-500 col-span-full">No se han registrado beneficios específicos.</p>';
+
+        const precioTxt = prop.precio_estimado 
+            ? `<div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-100"><p class="text-[10px] text-blue-600 font-bold uppercase tracking-wide">Precio Estimado</p><p class="text-xl font-extrabold text-blue-800">${formatoDinero(prop.precio_estimado)}</p></div>` 
+            : `<div class="bg-slate-50 rounded-lg p-3 text-center border border-slate-200"><p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Precio Mensual</p><p class="text-sm mt-1 font-bold text-slate-700">Tratar con dueño</p></div>`;
+
+        contenedor.innerHTML = `
+            <div class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 anim-fade-in">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden anim-scale-in">
+                    
+                    <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                        <div>
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest ${meta.clase} mb-1">
+                                <i class="fas ${meta.icono}"></i> ${esc(meta.label)}
+                            </span>
+                            <h3 class="text-2xl font-extrabold text-slate-900 leading-tight">${esc(prop.nombre)}</h3>
+                        </div>
+                        <button onclick="BUSCAR_PROPIEDAD.cerrarModal()" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+                        <p class="text-slate-600 text-sm flex items-start gap-2 mb-6">
+                            <i class="fas fa-map-marker-alt text-red-500 mt-1"></i>
+                            <span>${esc(prop.direccion)}</span>
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                            ${precioTxt}
+                            <div class="bg-slate-50 rounded-lg p-3 text-center border border-slate-200 col-span-1 sm:col-span-2 flex items-center justify-center">
+                                <p class="text-sm text-slate-600 italic">"Esta propiedad actualmente no tiene un contrato activo, ¡está disponible para ti!"</p>
+                            </div>
+                        </div>
+
+                        ${prop.descripcion ? `
+                        <div class="mb-6">
+                            <h4 class="text-sm font-bold text-slate-800 mb-2">Acerca del lugar</h4>
+                            <p class="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">${esc(prop.descripcion)}</p>
+                        </div>` : ''}
+
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 mb-3">Beneficios y Amenidades</h4>
+                            <div class="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                                ${benesHtml}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-5 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white rounded-full shadow flex items-center justify-center text-blue-600 text-lg border border-slate-200">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="flex flex-col">
+                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Arrendador</p>
+                                <p class="text-sm font-extrabold text-slate-800 leading-tight">${esc(prop.duenio.nombre_completo)}</p>
+                                <div class="flex items-center gap-3 mt-1">
+                                    ${prop.duenio.telefono ? `<a href="tel:${esc(prop.duenio.telefono)}" class="text-[11px] font-bold text-green-600 hover:text-green-700 transition-colors"><i class="fas fa-phone-alt mr-1"></i>${esc(prop.duenio.telefono)}</a>` : ''}
+                                    ${prop.duenio.correo ? `<a href="mailto:${esc(prop.duenio.correo)}" class="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors"><i class="fas fa-envelope mr-1"></i>${esc(prop.duenio.correo)}</a>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button id="btn-solicitar" onclick="BUSCAR_PROPIEDAD.enviarSolicitud('${prop.propiedad_id}')" 
+                                class="w-full sm:w-auto bg-[#0f2557] hover:bg-blue-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i> Solicitar Contrato
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
-    async function _renderPanel() {
-        const iframe  = document.getElementById('panel-iframe');
-        const hint    = document.getElementById('panel-hint');
-        const toggle  = document.getElementById('panel-toggle');
-        const detalle = document.getElementById('panel-detalle');
-        if (!iframe) return;
+    function cerrarModal() {
+        document.getElementById('modal-container').innerHTML = '';
+    }
 
-        // Sin selección: mapa de la ciudad + hint, sin toggle ni detalle
-        if (!_seleccion) {
-            iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(CIUDAD_DEFAULT)}&z=11&output=embed`;
-            hint?.classList.remove('hidden');
-            toggle?.classList.add('hidden');  toggle?.classList.remove('flex');
-            detalle?.classList.add('hidden');
-            _set('panel-titulo', 'Mapa');
-            _set('panel-direccion', '');
+    async function enviarSolicitud(propId) {
+        if (!_inquilinoId) {
+            TOAST?.error('Error de cuenta: No se encontró tu perfil de inquilino.');
             return;
         }
 
-        const dir = _seleccion.direccion || '';
-        hint?.classList.add('hidden');
-        toggle?.classList.remove('hidden');  toggle?.classList.add('flex');
+        const prop = _unidadesFiltradas.find(p => String(p.propiedad_id) === String(propId));
+        if (!prop) return;
 
-        _set('panel-titulo', _seleccion.nombre || 'Propiedad');
-        _set('panel-direccion', dir);
-        _renderDetalle(_seleccion);
-
-        if (_modoPanel === 'street') {
-            // Street View necesita coordenadas → geocodificamos (OSM)
-            const coord = await _geocodificar(dir);
-            if (coord) {
-                iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${coord.lat},${coord.lng}&cbp=11,0,0,0,0&output=svembed`;
-            } else {
-                // Sin coordenadas: caemos a "Mapa" por dirección
-                _modoPanel = 'mapa';
-                iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(dir)}&z=16&output=embed`;
-                _toast('No encontramos Street View para esta dirección; mostrando el mapa.', 'info');
-            }
-        } else {
-            iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(dir)}&z=16&output=embed`;
-        }
-
-        _actualizarToggle();
-    }
-
-    function _actualizarToggle() {
-        const setActive = (id, active) => {
-            const btn = document.getElementById(id);
-            if (!btn) return;
-            btn.classList.toggle('bg-blue-600', active);
-            btn.classList.toggle('text-white', active);
-            btn.classList.toggle('shadow-sm', active);
-            btn.classList.toggle('text-slate-600', !active);
-        };
-        setActive('btn-mapa',   _modoPanel === 'mapa');
-        setActive('btn-street', _modoPanel === 'street');
-    }
-
-    function _renderDetalle(u) {
-        const cont = document.getElementById('panel-detalle');
-        if (!cont) return;
-
-        const meta  = TIPO_META[u.tipo_propiedad] || { label: u.tipo_propiedad, clase: 'bg-slate-100 text-slate-700' };
-        const d     = u.duenio || {};
-        const benes = Array.isArray(u.beneficios) ? u.beneficios : [];
-
-        const benesHTML = benes.length
-            ? `<div class="flex flex-wrap gap-1.5 mt-2">
-                   ${benes.map(b => `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">${esc(b)}</span>`).join('')}
-               </div>`
-            : '';
-
-        const tel = d.telefono
-            ? `<a href="tel:${esc(d.telefono)}" class="text-blue-600 hover:underline">${esc(d.telefono)}</a>`
-            : '—';
-        const correo = d.correo
-            ? `<a href="mailto:${esc(d.correo)}" class="text-blue-600 hover:underline break-all">${esc(d.correo)}</a>`
-            : '—';
-
-        cont.innerHTML = `
-            <div class="flex items-start justify-between gap-2">
-                <h4 class="text-slate-900 font-bold text-base">${esc(u.nombre)}</h4>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0 ${meta.clase}">${esc(meta.label)}</span>
-            </div>
-            <p class="text-slate-500 text-xs mt-0.5">${esc(u.direccion || '')}</p>
-            ${u.descripcion ? `<p class="text-slate-600 text-sm mt-2">${esc(u.descripcion)}</p>` : ''}
-            ${benesHTML}
-            <div class="mt-3 pt-3 border-t border-slate-100">
-                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1.5">Arrendador</p>
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        ${esc(_iniciales(d.nombre_completo))}
-                    </div>
-                    <div class="min-w-0">
-                        <p class="text-slate-800 text-sm font-semibold truncate">${esc(d.nombre_completo || '—')}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">Tel: ${tel}</p>
-                        <p class="text-xs text-slate-500 break-all">Correo: ${correo}</p>
-                    </div>
-                </div>
-            </div>`;
-        cont.classList.remove('hidden');
-    }
-
-    // ── Geocodificación con OpenStreetMap (sin API key) + caché ──
-    function _getCache() {
-        try { return JSON.parse(localStorage.getItem(GEO_CACHE_KEY)) || {}; }
-        catch { return {}; }
-    }
-    function _setCache(c) {
-        try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(c)); } catch { /* storage no disponible */ }
-    }
-
-    async function _geocodificar(direccion) {
-        const key = (direccion || '').trim().toLowerCase();
-        if (!key) return null;
-
-        const cache = _getCache();
-        if (cache[key]) return cache[key];
+        const btn = document.getElementById('btn-solicitar');
+        if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; }
 
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q=${encodeURIComponent(direccion)}`;
-            const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            if (!resp.ok) return null;
-            const arr = await resp.json();
-            if (Array.isArray(arr) && arr.length) {
-                const coord = { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) };
-                cache[key] = coord;
-                _setCache(cache);
-                return coord;
-            }
-        } catch (e) {
-            console.warn('[BUSCAR-PROP] No se pudo geocodificar la dirección:', e);
-        }
-        return null;
-    }
+            // USAMOS TIPO 'RECORDATORIO' para no romper la base de datos que ya tiene su Enum estricto.
+            // Los metadatos permitirán al frontend del arrendador armar el contrato con campos prellenados.
+            const payload = {
+                usuario_id: prop.duenio.usuario_id,
+                titulo: '¡Nueva solicitud de arrendamiento!',
+                mensaje: `El inquilino ${_usuario.nombre_completo} está interesado en rentar la propiedad "${prop.nombre}". Comunicate con él o redacta un contrato directamente.`,
+                tipo: 'RECORDATORIO', 
+                leida: false,
+                metadatos: {
+                    accion: "SOLICITUD_CONTRATO",
+                    propiedad_id: prop.propiedad_id,
+                    inquilino_id: _inquilinoId,
+                    url_accion: `nuevo-contrato.html?propiedad_id=${prop.propiedad_id}&inquilino_id=${_inquilinoId}`
+                }
+            };
 
-    // ── Helpers ─────────────────────────────────────────────────
-    function _renderStats() {
-        const deptos = _unidades.filter(u => u.tipo_propiedad === 'DEPARTAMENTO').length;
-        const casas  = _unidades.filter(u => u.tipo_propiedad === 'CASA').length;
-        const otros  = _unidades.filter(u => u.tipo_propiedad === 'LOCAL' || u.tipo_propiedad === 'TERRENO').length;
-        _set('m-disponibles', _unidades.length);
-        _set('m-deptos', deptos);
-        _set('m-casas', casas);
-        _set('m-otros', otros);
-    }
+            const { error } = await window.supabaseClient.from('notificaciones').insert([payload]);
+            if (error) throw error;
 
-    function _bloqueMensaje(txt) {
-        return `<div class="col-span-full bg-white rounded-2xl border border-slate-100 p-8 text-center">
-                    <p class="text-slate-400 text-sm">${esc(txt)}</p>
-                </div>`;
-    }
+            TOAST?.success('¡Solicitud enviada al arrendador con éxito!');
+            setTimeout(() => cerrarModal(), 1500);
 
-    function _iniciales(nombre) {
-        return (nombre || 'A').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    }
-
-    function _set(id, valor) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = valor;
-    }
-
-    function _toast(msg, tipo = 'info') {
-        if (window.TOAST) {
-            if (tipo === 'error') TOAST.error(msg);
-            else if (tipo === 'success') TOAST.success(msg);
-            else TOAST.info(msg);
-        } else {
-            console.log('[BUSCAR-PROP]', msg);
+        } catch (err) {
+            console.error('[BUSCAR-PROP] Error al solicitar:', err);
+            TOAST?.error('No se pudo enviar la solicitud.');
+            if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Solicitar Contrato'; }
         }
     }
 
-    return { init };
+    return { 
+        init, 
+        abrirModal, 
+        cerrarModal, 
+        enviarSolicitud 
+    };
 })();
-
-window.BUSCAR_PROPIEDAD = BUSCAR_PROPIEDAD;

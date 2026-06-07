@@ -37,10 +37,10 @@ const NUEVO_CONTRATO = (() => {
     async function init(usuario) {
         _usuario = usuario;
 
-        // Soportar ?propiedadId=N en la URL (al venir desde "Crear contrato"
-        // en la tarjeta de una propiedad disponible)
+        // Soportar IDs en la URL (al venir desde "Crear contrato" o desde Notificaciones)
         const params = new URLSearchParams(window.location.search);
-        _propiedadPreset = params.get('propiedadId') || params.get('deptoId');
+        _propiedadPreset = params.get('propiedadId') || params.get('deptoId') || params.get('propiedad_id');
+        const inquilinoPreset = params.get('inquilino_id');
 
         // Fecha de inicio por defecto: hoy
         const hoy = new Date().toISOString().slice(0, 10);
@@ -48,6 +48,38 @@ const NUEVO_CONTRATO = (() => {
 
         await _cargarPropiedadesDisponibles();
         _bindEventos();
+        
+        // Cargar inquilino si viene desde la solicitud del modal de buscar-propiedad
+        if (inquilinoPreset) {
+            await _cargarInquilinoPreset(inquilinoPreset);
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Helper para cargar inquilino desde Notificación (Solicitud)
+    // ──────────────────────────────────────────────────────────────
+    async function _cargarInquilinoPreset(inqId) {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('inquilinos')
+                .select('inquilino_id, usuario_id')
+                .eq('inquilino_id', inqId)
+                .maybeSingle();
+                
+            if (data?.usuario_id) {
+                const { data: usrData } = await window.supabaseClient
+                    .from('usuarios')
+                    .select('usuario_id, nombre_completo, correo, telefono, rol, activo')
+                    .eq('usuario_id', data.usuario_id)
+                    .maybeSingle();
+                    
+                if (usrData) {
+                    await _seleccionarInquilino(usrData);
+                }
+            }
+        } catch (err) {
+            console.warn('[NUEVO-CONTRATO] Error al pre-cargar inquilino:', err);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -57,7 +89,8 @@ const NUEVO_CONTRATO = (() => {
         // a) Todas las propiedades del arrendador (solo unidades habitables)
         const { data: props, error } = await window.supabaseClient
             .from('propiedades')
-            .select('propiedad_id, nombre, direccion, tipo_propiedad, propiedad_padre_id')
+            // AGREGAMOS 'beneficios' AL SELECT
+            .select('propiedad_id, nombre, direccion, tipo_propiedad, propiedad_padre_id, beneficios')
             .eq('duenio_id', _usuario.usuario_id)
             .eq('activa', true)
             .neq('tipo_propiedad', 'EDIFICIO')     // los edificios no se rentan, solo sus deptos
@@ -260,9 +293,35 @@ const NUEVO_CONTRATO = (() => {
     // ──────────────────────────────────────────────────────────────
     // 5. Cambio de propiedad → actualizar preview
     // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    // 5. Cambio de propiedad → actualizar preview
+    // ──────────────────────────────────────────────────────────────
     function _onCambioPropiedad() {
         _mostrarStatusPropiedad('', null);
         _actualizarPreview();
+
+        // --- NUEVO: PRELLENADO DE BENEFICIOS AUTOMÁTICO ---
+        const selectPropiedad = document.getElementById('propiedad-id');
+        if (!selectPropiedad || !selectPropiedad.value) return;
+
+        const propInfo = _propiedades.find(p => String(p.propiedad_id) === String(selectPropiedad.value));
+        
+        if (propInfo) {
+            // 1. Limpiamos todos los checkboxes primero
+            document.querySelectorAll('input[name="beneficios"]').forEach(cb => cb.checked = false);
+            
+            // 2. Marcamos los que tenga la propiedad en la base de datos
+            if (Array.isArray(propInfo.beneficios)) {
+                const propBeneficiosStr = propInfo.beneficios.join(' ').toLowerCase();
+                
+                document.querySelectorAll('input[name="beneficios"]').forEach(cb => {
+                    const keyword = cb.value.replace('_', ' ').toLowerCase();
+                    if (propBeneficiosStr.includes(keyword)) {
+                        cb.checked = true;
+                    }
+                });
+            }
+        }
     }
 
     function _mostrarStatusPropiedad(msg, tipo) {
@@ -314,25 +373,29 @@ const NUEVO_CONTRATO = (() => {
     // 7. Crear el contrato
     // ──────────────────────────────────────────────────────────────
     async function _crearContrato() {
+        
         const btn = document.getElementById('btn-crear');
 
-        // Validaciones de UI
-        if (!_inquilinoSeleccionado) {
-            _alerta('Selecciona primero a un inquilino registrado.', 'error');
-            return;
-        }
+        // 1. Extraer los valores del formulario
         const propiedadId = parseInt(document.getElementById('propiedad-id').value, 10);
-        if (!propiedadId) { _alerta('Selecciona una propiedad.', 'error'); return; }
-
         const fechaInicio = document.getElementById('fecha-inicio').value;
         const fechaFin    = document.getElementById('fecha-fin').value;
         const montoRenta  = parseFloat(document.getElementById('monto-renta').value);
         const frecuencia  = document.getElementById('frecuencia-pago').value;
-        const beneficios  = document.getElementById('beneficios').value.trim();
         const observaciones = document.getElementById('observaciones').value.trim();
+        
+        // Recolección de beneficios como array
+        const beneficios = Array.from(document.querySelectorAll('input[name="beneficios"]:checked')).map(cb => cb.value);
 
-        if (!fechaInicio || !fechaFin) {
-            _alerta('Indica las fechas de inicio y término.', 'error');
+        // 2. VALIDACIÓN GLOBAL DE CAMPOS FALTANTES
+        // Revisa que ningún campo obligatorio esté vacío o sea inválido
+        if (!_inquilinoSeleccionado || !propiedadId || !fechaInicio || !fechaFin || isNaN(montoRenta) || !frecuencia) {
+            // Usar TOAST si está disponible, si no, respaldo con _alerta
+            if (window.TOAST) {
+                TOAST.error('Completa todos los campos obligatorios primero.');
+            } else {
+                _alerta('Completa todos los campos obligatorios primero.', 'error');
+            }
             return;
         }
 
@@ -381,7 +444,7 @@ const NUEVO_CONTRATO = (() => {
                     monto_renta: montoRenta,
                     frecuencia_pago: frecuencia,
                     estado: 'PENDIENTE',
-                    beneficios: beneficios || null,
+                    beneficios: beneficios.length > 0 ? beneficios : null,
                     observaciones: observaciones || null
                 })
                 .select('contrato_id')
