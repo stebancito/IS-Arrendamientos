@@ -14,6 +14,24 @@
             theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
         };
     </script>
+    <style>
+        /* transiciones extra para el banner de bienvenida */
+        .hero-banner {
+            background: linear-gradient(135deg, #0f2557 0%, #1e3a8a 100%);
+            transition: all 0.3s ease;
+        }
+        .hero-banner:hover {
+            transform: scale(1.01);
+            box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.25);
+        }
+        .btn-glow {
+            transition: all 0.2s ease;
+        }
+        .btn-glow:hover {
+            box-shadow: 0 0 15px rgba(59,130,246,0.6);
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 
 <body class="font-sans antialiased bg-slate-50">
@@ -29,16 +47,16 @@
         <!-- Cabecera -->
         <div class="mb-6 anim-fade-in-up">
             <h3 class="text-slate-900 font-bold text-xl" id="welcome-msg">Bienvenido</h3>
-            <p class="text-slate-500 text-sm mt-0.5">Revisa el estado de tus contratos y pagos.</p>
+            <p class="text-slate-500 text-sm mt-0.5" id="subheader-msg">Revisa el estado de tus contratos y pagos.</p>
         </div>
 
-        <!-- ========== CARRUSEL DE CONTRATOS ACTIVOS ========== -->
-        <div class="relative mb-6">
+        <!-- ========== CARRUSEL DE CONTRATOS ACTIVOS (o BANNER NUEVO USUARIO) ========== -->
+        <div class="relative mb-6" id="carousel-wrapper">
             <div id="carousel-container" class="rounded-2xl overflow-hidden shadow-xl shadow-blue-900/20">
-                <!-- Aquí se inyectará dinámicamente el banner del contrato activo -->
+                <!-- Aquí se inyectará dinámicamente el banner del contrato activo o el banner de búsqueda -->
                 <div class="bg-gradient-to-r from-[#0f2557] to-[#1d4ed8] p-5 text-white">
-                    <!-- Indicador de posición -->
-                    <div class="flex justify-between items-center mb-3">
+                    <!-- Indicador de posición (se oculta si no hay contratos) -->
+                    <div id="carousel-nav-header" class="flex justify-between items-center mb-3">
                         <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider">
                             Contrato activo <span id="carousel-index">1</span> de <span id="carousel-total">0</span>
                         </p>
@@ -56,9 +74,9 @@
                         </div>
                     </div>
 
-                    <!-- Contenido dinámico del carrusel -->
+                    <!-- Contenido dinámico del carrusel / banner nuevo usuario -->
                     <div id="carousel-content" class="transition-all">
-                        <!-- Se llenará con JS -->
+                        <!-- Se llenará con JS (contratos activos) o se reemplazará por banner de búsqueda -->
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p id="carousel-propiedad" class="font-bold text-lg leading-tight">Cargando…</p>
@@ -155,7 +173,7 @@
                 <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                Todas mis propiedades
+                Todas mis rentas
             </h4>
             <div id="lista-contratos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Aquí se inyectarán las tarjetas de cada contrato activo -->
@@ -174,7 +192,7 @@
                     <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    <span class="text-slate-800 font-semibold text-sm">Desglose de pagos por propiedad</span>
+                    <span class="text-slate-800 font-semibold text-sm">Desglose de pagos por rentas</span>
                 </div>
                 <svg id="toggle-icon" class="w-5 h-5 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -201,8 +219,20 @@
             </div>
         </div>
 
-        <!-- Acciones rápidas -->
-        <div class="grid grid-cols-2 gap-3 mt-6">
+        <!-- Acciones rápidas (3 botones, incluido BUSCAR PROPIEDADES) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+            <a href="buscar-propiedades.html"
+               class="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 group border-0 text-white transform hover:-translate-y-1">
+                <div class="w-10 h-10 rounded-xl bg-white/20 group-hover:bg-white/30 transition-colors flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-white text-sm font-bold">🔍 Buscar propiedades</p>
+                    <p class="text-blue-100 text-xs">Encuentra tu próximo hogar</p>
+                </div>
+            </a>
             <a href="mis-incidencias.html"
                class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50/40 transition-all duration-200 shadow-sm group">
                 <div class="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 transition-colors flex items-center justify-center flex-shrink-0">
@@ -267,7 +297,7 @@
                 .maybeSingle();
 
             if (!inquilino) {
-                mostrarSinContratos();
+                mostrarSinContratos(true); // true = sin inquilino asociado
                 return;
             }
 
@@ -293,7 +323,7 @@
                 .eq('estado', 'ACTIVO');
 
             if (errCont || !contratos?.length) {
-                mostrarSinContratos();
+                mostrarSinContratos(false);
                 return;
             }
 
@@ -359,7 +389,8 @@
             document.getElementById('total-vencidos').textContent = totalPagosGeneral.vencidos;
             pintarSemaforoGlobal(nivelGlobal, cumplimientoGlobal, totalPagosGeneral.pagados, totalPagosGeneral.vencidos);
 
-            // Inicializar carrusel
+            // Restaurar vista del carrusel normal y ocultar posible banner
+            restaurarCarruselOriginal();
             inicializarCarrusel();
 
             // Renderizar lista de todas las propiedades
@@ -385,6 +416,20 @@
                     icon.style.transform = 'rotate(0deg)';
                 }
             });
+        }
+
+        // Función para restaurar la estructura original del carrusel (si fue reemplazada por banner)
+        function restaurarCarruselOriginal() {
+            const container = document.getElementById('carousel-container');
+            // Si ya tiene la estructura normal, no hacemos nada. Pero por si acaso, validamos que existan los elementos.
+            if (document.getElementById('carousel-nav-header') && document.getElementById('carousel-content')) {
+                // Aseguramos que se muestren los elementos de navegación
+                document.getElementById('carousel-nav-header').style.display = 'flex';
+                document.getElementById('carousel-content').style.opacity = '1';
+                return;
+            }
+            // Si no, reconstruimos (caso extremo)
+            location.reload(); // simple recarga para evitar inconsistencias.
         }
 
         // ========== CARRUSEL ==========
@@ -424,7 +469,6 @@
             if (nuevoIndice === indiceActual) return;
             if (nuevoIndice < 0 || nuevoIndice >= contratosActivos.length) return;
 
-            // Efecto de fade (opcional)
             const content = document.getElementById('carousel-content');
             content.style.opacity = '0';
             setTimeout(() => {
@@ -450,27 +494,15 @@
             document.getElementById('carousel-progreso-pct').textContent = `${pct}%`;
             document.getElementById('carousel-barra').style.width = `${pct}%`;
 
-            // Semáforo individual
             const semaforo = ct.stats.nivel;
-            const semColors = {
-                VERDE: 'bg-green-400',
-                AMARILLO: 'bg-yellow-400',
-                ROJO: 'bg-red-400',
-                NEUTRO: 'bg-gray-400'
-            };
-            const semLabels = {
-                VERDE: 'Excelente',
-                AMARILLO: 'Regular',
-                ROJO: 'En riesgo',
-                NEUTRO: 'Sin historial'
-            };
+            const semColors = { VERDE: 'bg-green-400', AMARILLO: 'bg-yellow-400', ROJO: 'bg-red-400', NEUTRO: 'bg-gray-400' };
+            const semLabels = { VERDE: 'Excelente', AMARILLO: 'Regular', ROJO: 'En riesgo', NEUTRO: 'Sin historial' };
             document.getElementById('carousel-sem-dot').className = `w-2.5 h-2.5 rounded-full ${semColors[semaforo] || 'bg-gray-400'}`;
             document.getElementById('carousel-sem-label').textContent = semLabels[semaforo] || 'Sin datos';
             document.getElementById('carousel-pagados').textContent = ct.stats.pagados;
             document.getElementById('carousel-vencidos').textContent = ct.stats.vencidos;
             document.getElementById('carousel-cumplimiento').textContent = ct.stats.cumplimiento != null ? `${ct.stats.cumplimiento}%` : '—';
 
-            // Actualizar dots
             const dots = document.querySelectorAll('#carousel-dots button');
             dots.forEach((dot, i) => {
                 dot.className = `w-2 h-2 rounded-full transition-all ${i === index ? 'bg-white w-4' : 'bg-white/40'}`;
@@ -629,15 +661,48 @@
             }).join('');
         }
 
-        function mostrarSinContratos() {
-            const elementos = ['total-propiedades', 'renta-total', 'total-pendientes', 'total-vencidos'];
-            elementos.forEach(id => { if(document.getElementById(id)) document.getElementById(id).textContent = '0'; });
+        // NUEVO BANNER ESPECTACULAR para usuarios nuevos (sin contratos)
+        function mostrarSinContratos(sinInquilino = false) {
+            // Ocultar elementos del carrusel que no aplican
+            const headerNav = document.getElementById('carousel-nav-header');
+            const dotsDiv = document.getElementById('carousel-dots');
+            if (headerNav) headerNav.style.display = 'none';
+            if (dotsDiv) dotsDiv.style.display = 'none';
+
+            const container = document.getElementById('carousel-container');
+            // Reemplazar contenido con banner atractivo
+            container.innerHTML = `
+                <div class="hero-banner rounded-2xl p-6 md:p-8 text-white text-center shadow-2xl">
+                    <div class="mb-4 inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight">¿Aún no tienes una renta?</h2>
+                    <p class="text-blue-100 text-base md:text-lg mt-3 max-w-md mx-auto">Encuentra el hogar que se adapta a ti. Revisa nuestras opciones disponibles y comienza a rentar hoy mismo.</p>
+                    <a href="buscar-propiedad.html" class="btn-glow inline-flex items-center gap-2 mt-6 px-8 py-3 bg-white text-blue-900 font-bold rounded-xl shadow-lg hover:bg-blue-50 transition-all duration-300 text-lg">
+                        Explorar propiedades a rentar
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </a>
+                    <p class="text-blue-200 text-xs mt-6">Miles de inmuebles en renta te esperan!</p>
+                </div>
+            `;
+
+            // Actualizar subtítulo
+            const sub = document.getElementById('subheader-msg');
+            if (sub) sub.textContent = '¡Comienza tu búsqueda de propiedad ahora!';
+
+            // Resetear valores de tarjetas a cero
+            document.getElementById('total-propiedades').textContent = '0';
+            document.getElementById('renta-total').textContent = '$0';
+            document.getElementById('total-pendientes').textContent = '0';
+            document.getElementById('total-vencidos').textContent = '0';
             pintarSemaforoGlobal('NEUTRO', null, 0, 0);
-            document.getElementById('lista-contratos').innerHTML = '<div class="col-span-full text-center p-6 bg-white rounded-2xl">No tienes contratos activos actualmente.</div>';
-            document.getElementById('detalle-pagos-contenido').innerHTML = '<p class="text-slate-400 text-sm">Sin datos.</p>';
+            document.getElementById('lista-contratos').innerHTML = '<div class="col-span-full text-center p-6 bg-white rounded-2xl">Aún no tienes contratos activos. ¡Anímate a buscar una propiedad!</div>';
+            document.getElementById('detalle-pagos-contenido').innerHTML = '<p class="text-slate-400 text-sm">Sin datos. Una vez que tengas un contrato, aquí verás el detalle de pagos.</p>';
             document.getElementById('proximos-pagos').innerHTML = '<div class="py-8 text-center"><p class="text-slate-400 text-sm">No hay pagos registrados.</p></div>';
-            // Ocultar controles del carrusel si no hay contratos
-            document.getElementById('carousel-container').innerHTML = '<div class="bg-slate-100 rounded-2xl p-5 text-center text-slate-500">No hay contratos activos</div>';
         }
 
         function esc(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
