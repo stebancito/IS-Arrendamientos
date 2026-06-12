@@ -1,27 +1,6 @@
 // ================================================================
 // nuevo-contrato.js  –  Módulo del Dev 3 (Gestión de Contratos)
 // ================================================================
-// Responsabilidades:
-//   - RF-11/12 : Vincular un inquilino existente con una propiedad.
-//   - RF-15/16 : Crear contrato con fecha inicio/fin, monto y frecuencia.
-//   - RN-05    : fecha_fin estrictamente posterior a fecha_inicio.
-//   - RN-06    : monto_renta > 0.
-//   - RN-03/10 : Una propiedad no puede tener otro contrato ACTIVO/PENDIENTE.
-//   - Lógica   : El contrato nace en estado PENDIENTE, esperando la aceptación
-//                explícita del inquilino antes de pasar a ACTIVO.
-//
-// Consulta clave de validación (RN-03 + RN-10):
-//   .from('contratos')
-//   .select('contrato_id', { count: 'exact', head: true })
-//   .eq('propiedad_id', X)
-//   .in('estado', ['ACTIVO', 'PENDIENTE'])
-//
-// Búsqueda de inquilino (RF-11/12):
-//   .from('usuarios')
-//   .select(...)
-//   .eq('rol', 'INQUILINO')
-//   .or(`correo.ilike.%${q}%,telefono.ilike.%${q}%`)
-// ================================================================
 
 const NUEVO_CONTRATO = (() => {
 
@@ -48,16 +27,13 @@ const NUEVO_CONTRATO = (() => {
 
         await _cargarPropiedadesDisponibles();
         _bindEventos();
-        
+
         // Cargar inquilino si viene desde la solicitud del modal de buscar-propiedad
         if (inquilinoPreset) {
             await _cargarInquilinoPreset(inquilinoPreset);
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Helper para cargar inquilino desde Notificación (Solicitud)
-    // ──────────────────────────────────────────────────────────────
     async function _cargarInquilinoPreset(inqId) {
         try {
             const { data, error } = await window.supabaseClient
@@ -65,14 +41,14 @@ const NUEVO_CONTRATO = (() => {
                 .select('inquilino_id, usuario_id')
                 .eq('inquilino_id', inqId)
                 .maybeSingle();
-                
+
             if (data?.usuario_id) {
                 const { data: usrData } = await window.supabaseClient
                     .from('usuarios')
                     .select('usuario_id, nombre_completo, correo, telefono, rol, activo')
                     .eq('usuario_id', data.usuario_id)
                     .maybeSingle();
-                    
+
                 if (usrData) {
                     await _seleccionarInquilino(usrData);
                 }
@@ -86,14 +62,12 @@ const NUEVO_CONTRATO = (() => {
     // 1. Cargar propiedades del arrendador SIN contratos activos/pendientes
     // ──────────────────────────────────────────────────────────────
     async function _cargarPropiedadesDisponibles() {
-        // a) Todas las propiedades del arrendador (solo unidades habitables)
         const { data: props, error } = await window.supabaseClient
             .from('propiedades')
-            // AGREGAMOS 'beneficios' AL SELECT
             .select('propiedad_id, nombre, direccion, tipo_propiedad, propiedad_padre_id, beneficios')
             .eq('duenio_id', _usuario.usuario_id)
             .eq('activa', true)
-            .neq('tipo_propiedad', 'EDIFICIO')     // los edificios no se rentan, solo sus deptos
+            .neq('tipo_propiedad', 'EDIFICIO')
             .order('nombre', { ascending: true });
 
         if (error) {
@@ -102,7 +76,6 @@ const NUEVO_CONTRATO = (() => {
             return;
         }
 
-        // b) Contratos activos/pendientes para excluir esas propiedades
         const ids = (props || []).map(p => p.propiedad_id);
         let ocupadas = new Set();
         if (ids.length) {
@@ -124,7 +97,6 @@ const NUEVO_CONTRATO = (() => {
                     ${esc(p.nombre)} (${tipoLbl[p.tipo_propiedad] || p.tipo_propiedad})
                 </option>`).join('');
 
-        // Si llegó preseleccionada por URL, intentar marcarla
         if (_propiedadPreset) {
             const idNum = parseInt(_propiedadPreset, 10);
             const existe = _propiedades.some(p => p.propiedad_id === idNum);
@@ -162,7 +134,6 @@ const NUEVO_CONTRATO = (() => {
 
         document.getElementById('btn-crear').addEventListener('click', _crearContrato);
 
-        // Cerrar resultados al hacer clic fuera
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#resultados-busqueda') && !e.target.closest('#busqueda-inquilino')) {
                 document.getElementById('resultados-busqueda').classList.add('hidden');
@@ -171,7 +142,7 @@ const NUEVO_CONTRATO = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // 3. Búsqueda de inquilinos (correo / teléfono)
+    // 3. Búsqueda de inquilinos
     // ──────────────────────────────────────────────────────────────
     async function _buscarInquilino(query) {
         const cont = document.getElementById('resultados-busqueda');
@@ -181,8 +152,6 @@ const NUEVO_CONTRATO = (() => {
             return;
         }
 
-        // Consulta: buscar por correo O teléfono, solo usuarios con rol INQUILINO
-        // Limitamos a 8 resultados para no sobrepoblar el dropdown.
         const { data, error } = await window.supabaseClient
             .from('usuarios')
             .select('usuario_id, nombre_completo, correo, telefono, rol, activo')
@@ -197,8 +166,8 @@ const NUEVO_CONTRATO = (() => {
         }
 
         if (!data?.length) {
-            cont.innerHTML = `<p class="p-4 text-xs text-slate-400 text-center">
-                Sin coincidencias para <span class="font-semibold">${esc(query)}</span>.
+            cont.innerHTML = `<p class="p-4 text-xs text-[#6F88A1] font-medium text-center">
+                Sin coincidencias para <span class="font-bold text-[#13243E]">${esc(query)}</span>.
                 Pídele al inquilino que se registre primero.
             </p>`;
             cont.classList.remove('hidden');
@@ -209,15 +178,15 @@ const NUEVO_CONTRATO = (() => {
             const iniciales = (u.nombre_completo || '?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
             return `
                 <button type="button" data-id="${u.usuario_id}"
-                        class="resultado-inq w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 text-left transition-colors border-b border-slate-100 last:border-0">
-                    <div class="w-9 h-9 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        class="resultado-inq w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F5F7F9] text-left transition-colors border-b border-slate-100 last:border-0">
+                    <div class="w-10 h-10 rounded-xl bg-[#FFC533]/20 text-[#13243E] flex items-center justify-center font-extrabold text-sm flex-shrink-0 border border-[#FFE788]">
                         ${esc(iniciales)}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-slate-800 text-sm font-semibold truncate">${esc(u.nombre_completo)}</p>
-                        <p class="text-slate-400 text-xs truncate">
-                            <i class="fa-solid fa-envelope text-[10px] mr-0.5"></i>${esc(u.correo)}
-                            ${u.telefono ? `<span class="ml-2"><i class="fa-solid fa-phone text-[10px] mr-0.5"></i>${esc(u.telefono)}</span>` : ''}
+                        <p class="text-[#13243E] text-sm font-bold truncate">${esc(u.nombre_completo)}</p>
+                        <p class="text-[#6F88A1] font-medium text-xs truncate mt-0.5">
+                            <i class="fa-solid fa-envelope text-[10px] mr-1"></i>${esc(u.correo)}
+                            ${u.telefono ? `<span class="ml-2"><i class="fa-solid fa-phone text-[10px] mr-1"></i>${esc(u.telefono)}</span>` : ''}
                         </p>
                     </div>
                     <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
@@ -236,8 +205,6 @@ const NUEVO_CONTRATO = (() => {
 
     // ──────────────────────────────────────────────────────────────
     // 4. Selección de inquilino
-    //    Verificamos que tenga registro en la tabla `inquilinos`;
-    //    si no, lo creamos en el momento (extensión de RF-11).
     // ──────────────────────────────────────────────────────────────
     async function _seleccionarInquilino(usr) {
         const { data: existente } = await window.supabaseClient
@@ -248,7 +215,6 @@ const NUEVO_CONTRATO = (() => {
 
         let inquilino_id = existente?.inquilino_id;
         if (!inquilino_id) {
-            // Crear el registro mínimo en la tabla inquilinos
             const { data: nuevo, error } = await window.supabaseClient
                 .from('inquilinos')
                 .insert({ usuario_id: usr.usuario_id })
@@ -270,7 +236,6 @@ const NUEVO_CONTRATO = (() => {
             telefono: usr.telefono
         };
 
-        // UI
         document.getElementById('resultados-busqueda').classList.add('hidden');
         document.getElementById('busqueda-inquilino').value = '';
 
@@ -291,29 +256,23 @@ const NUEVO_CONTRATO = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // 5. Cambio de propiedad → actualizar preview
-    // ──────────────────────────────────────────────────────────────
-    // ──────────────────────────────────────────────────────────────
-    // 5. Cambio de propiedad → actualizar preview
+    // 5. Cambio de propiedad → actualizar preview y checkboxes
     // ──────────────────────────────────────────────────────────────
     function _onCambioPropiedad() {
         _mostrarStatusPropiedad('', null);
         _actualizarPreview();
 
-        // --- NUEVO: PRELLENADO DE BENEFICIOS AUTOMÁTICO ---
         const selectPropiedad = document.getElementById('propiedad-id');
         if (!selectPropiedad || !selectPropiedad.value) return;
 
         const propInfo = _propiedades.find(p => String(p.propiedad_id) === String(selectPropiedad.value));
-        
+
         if (propInfo) {
-            // 1. Limpiamos todos los checkboxes primero
             document.querySelectorAll('input[name="beneficios"]').forEach(cb => cb.checked = false);
-            
-            // 2. Marcamos los que tenga la propiedad en la base de datos
+
             if (Array.isArray(propInfo.beneficios)) {
                 const propBeneficiosStr = propInfo.beneficios.join(' ').toLowerCase();
-                
+
                 document.querySelectorAll('input[name="beneficios"]').forEach(cb => {
                     const keyword = cb.value.replace('_', ' ').toLowerCase();
                     if (propBeneficiosStr.includes(keyword)) {
@@ -327,9 +286,9 @@ const NUEVO_CONTRATO = (() => {
     function _mostrarStatusPropiedad(msg, tipo) {
         const el = document.getElementById('prop-status');
         if (!msg) { el.classList.add('hidden'); el.innerHTML = ''; return; }
-        const color = tipo === 'error' ? 'text-red-600' : 'text-slate-500';
-        el.className = `mt-2 text-xs ${color}`;
-        el.textContent = msg;
+        const color = tipo === 'error' ? 'text-red-600' : 'text-[#6F88A1]';
+        el.className = `mt-2 text-xs font-bold ${color}`;
+        el.innerHTML = `<i class="fa-solid fa-circle-info mr-1"></i> ${msg}`;
         el.classList.remove('hidden');
     }
 
@@ -350,7 +309,6 @@ const NUEVO_CONTRATO = (() => {
         document.getElementById('pv-inicio').textContent = fmtFecha(fi);
         document.getElementById('pv-fin').textContent    = fmtFecha(ff);
 
-        // Duración
         let durTxt = '—';
         if (fi && ff) {
             const a = new Date(fi), b = new Date(ff);
@@ -373,33 +331,23 @@ const NUEVO_CONTRATO = (() => {
     // 7. Crear el contrato
     // ──────────────────────────────────────────────────────────────
     async function _crearContrato() {
-        
         const btn = document.getElementById('btn-crear');
 
-        // 1. Extraer los valores del formulario
         const propiedadId = parseInt(document.getElementById('propiedad-id').value, 10);
         const fechaInicio = document.getElementById('fecha-inicio').value;
         const fechaFin    = document.getElementById('fecha-fin').value;
         const montoRenta  = parseFloat(document.getElementById('monto-renta').value);
         const frecuencia  = document.getElementById('frecuencia-pago').value;
         const observaciones = document.getElementById('observaciones').value.trim();
-        
-        // Recolección de beneficios como array
+
         const beneficios = Array.from(document.querySelectorAll('input[name="beneficios"]:checked')).map(cb => cb.value);
 
-        // 2. VALIDACIÓN GLOBAL DE CAMPOS FALTANTES
-        // Revisa que ningún campo obligatorio esté vacío o sea inválido
         if (!_inquilinoSeleccionado || !propiedadId || !fechaInicio || !fechaFin || isNaN(montoRenta) || !frecuencia) {
-            // Usar TOAST si está disponible, si no, respaldo con _alerta
-            if (window.TOAST) {
-                TOAST.error('Completa todos los campos obligatorios primero.');
-            } else {
-                _alerta('Completa todos los campos obligatorios primero.', 'error');
-            }
+            if (window.TOAST) TOAST.error('Completa todos los campos obligatorios primero.');
+            else _alerta('Completa todos los campos obligatorios primero.', 'error');
             return;
         }
 
-        // RN-05: fecha_fin estrictamente posterior a fecha_inicio
         if (new Date(fechaFin) <= new Date(fechaInicio)) {
             document.getElementById('fechas-error').classList.remove('hidden');
             setTimeout(() => document.getElementById('fechas-error').classList.add('hidden'), 4000);
@@ -407,7 +355,6 @@ const NUEVO_CONTRATO = (() => {
             return;
         }
 
-        // RN-06: monto > 0
         if (isNaN(montoRenta) || montoRenta <= 0) {
             document.getElementById('monto-error').classList.remove('hidden');
             setTimeout(() => document.getElementById('monto-error').classList.add('hidden'), 4000);
@@ -418,9 +365,6 @@ const NUEVO_CONTRATO = (() => {
         AUTH.setLoading(btn, true);
 
         try {
-            // ── Validación final en vivo: RN-03 + RN-10 ──
-            // (Defensa contra condiciones de carrera: otro arrendador o este mismo
-            //  pudo haber creado un contrato mientras el formulario estaba abierto.)
             const { count } = await window.supabaseClient
                 .from('contratos')
                 .select('contrato_id', { count: 'exact', head: true })
@@ -433,7 +377,6 @@ const NUEVO_CONTRATO = (() => {
                 return;
             }
 
-            // Insertar el contrato en estado PENDIENTE
             const { data: nuevo, error } = await window.supabaseClient
                 .from('contratos')
                 .insert({
@@ -456,7 +399,6 @@ const NUEVO_CONTRATO = (() => {
                 TOAST.success('Contrato creado. El inquilino recibirá la solicitud para aceptarlo.');
             }
 
-            // Crear notificación interna para el inquilino (RF-38 análogo)
             await window.supabaseClient.from('notificaciones').insert({
                 usuario_id: _inquilinoSeleccionado.usuario_id,
                 titulo: 'Nuevo contrato pendiente de tu aceptación',
@@ -476,18 +418,15 @@ const NUEVO_CONTRATO = (() => {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Helper de alerta inline
-    // ──────────────────────────────────────────────────────────────
     function _alerta(msg, tipo = 'error') {
         const el = document.getElementById('form-alert');
         if (!el) return;
         const colores = {
             error:   'bg-red-50 border border-red-200 text-red-700',
-            success: 'bg-green-50 border border-green-200 text-green-700',
-            info:    'bg-blue-50 border border-blue-200 text-blue-700',
+            success: 'bg-[#FFFBEB] border border-[#FFE788] text-[#13243E]',
+            info:    'bg-[#5A97D6]/10 border border-[#5A97D6]/20 text-[#255FA4]',
         };
-        el.className = `mb-4 px-4 py-3 rounded-xl text-sm font-medium ${colores[tipo] || colores.error}`;
+        el.className = `mb-5 px-4 py-3 rounded-xl text-sm font-bold ${colores[tipo] || colores.error}`;
         el.textContent = msg;
         el.classList.remove('hidden');
         setTimeout(() => el.classList.add('hidden'), 5000);

@@ -85,7 +85,7 @@ const PAGOS_INQUILINO = (() => {
             .from('contratos')
             .select(`
                 contrato_id, fecha_inicio, fecha_fin, monto_renta, frecuencia_pago, estado,
-                propiedades ( 
+                propiedades (
                     propiedad_id, nombre, direccion, tipo_propiedad,
                     usuarios ( nombre_completo, correo, telefono )
                 )
@@ -209,7 +209,7 @@ const PAGOS_INQUILINO = (() => {
         if (_contratoActual) {
             const prop = _contratoActual.propiedades || {};
             const icon = iconMap[prop.tipo_propiedad] || 'fa-house';
-            
+
             // 1. Renderizar el botón seleccionado
             btnContent.innerHTML = `
                 <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
@@ -224,7 +224,7 @@ const PAGOS_INQUILINO = (() => {
             // 2. Renderizar datos del Arrendador
             const arr = prop.usuarios || {};
             const iniciales = (arr.nombre_completo || '?').substring(0, 2).toUpperCase();
-            
+
             document.getElementById('info-arrendador')?.classList.remove('hidden');
             document.getElementById('arr-avatar').textContent = iniciales;
             document.getElementById('arr-nombre').textContent = arr.nombre_completo || 'No registrado';
@@ -238,7 +238,7 @@ const PAGOS_INQUILINO = (() => {
             const i = iconMap[p.tipo_propiedad] || 'fa-house';
             const isActive = _contratoActual && _contratoActual.contrato_id === c.contrato_id;
             const activeClass = isActive ? 'bg-blue-50/50 border-l-4 border-blue-500' : 'hover:bg-slate-50';
-            
+
             return `
                 <div class="p-3 cursor-pointer transition ${activeClass} border-b border-slate-50 last:border-0" data-id="${c.contrato_id}">
                     <div class="flex items-center gap-3">
@@ -261,7 +261,7 @@ const PAGOS_INQUILINO = (() => {
                 const id = parseInt(el.getAttribute('data-id'), 10);
                 _contratoActual = _contratos.find(c => c.contrato_id === id) || null;
                 dropdown.classList.add('hidden');
-                
+
                 _renderCustomSelector();
                 await _cargarPagosContrato();
                 _renderResumen();
@@ -274,7 +274,7 @@ const PAGOS_INQUILINO = (() => {
     function _bindSelectorContrato() {
         const btn = document.getElementById('btn-custom-selector');
         const dropdown = document.getElementById('dropdown-contratos');
-        
+
         if (btn && dropdown) {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -288,7 +288,7 @@ const PAGOS_INQUILINO = (() => {
                 }
             });
         }
-        
+
         // Ejecutamos render la primera vez que se hace bind
         if (_contratos.length > 0) {
             _renderCustomSelector();

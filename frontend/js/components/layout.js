@@ -1,12 +1,8 @@
 // ================================================================
-// components/layout.js  –  Layout Maestro Dinámico
+// components/layout.js  –  Layout Maestro Dinámico Unificado
 // ================================================================
-// Inyecta el sidebar + topbar en páginas protegidas.
-//
-// USO EN CADA PÁGINA PROTEGIDA:
-//   1. HTML body debe contener: <div id="page-template">...contenido...</div>
-//   2. En el script de init: await LAYOUT.inyectarLayout({ paginaActiva: 'dashboard' })
-//   3. Luego llamar LAYOUT.setPageTitle('Título visible en topbar')
+// Inyecta el sidebar (Gris Claro, Colapsable e Inteligente) + topbar.
+// Incorpora efecto de proximidad, toasts dinámicos y notificaciones.
 // ================================================================
 
 const LAYOUT = (() => {
@@ -25,7 +21,7 @@ const LAYOUT = (() => {
         logout:     `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>`,
         hamburger:  `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>`,
         close:      `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
-        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+        mapPin:     `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
     };
 
     const NAV_ARRENDADOR = [
@@ -47,7 +43,7 @@ const LAYOUT = (() => {
     ];
 
     // ──────────────────────────────────────────────────────────────
-    // Generador del HTML del sidebar (VERSIÓN COLAPSABLE)
+    // Generador del HTML del sidebar (Gris Claro + Colapsable e Inteligente)
     // ──────────────────────────────────────────────────────────────
     function _buildSidebar(usuario, navItems, activePage) {
         const iniciales = (usuario.nombre_completo || 'U')
@@ -63,11 +59,13 @@ const LAYOUT = (() => {
             <a href="${esc(item.href)}"
                class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                       ${active
-                          ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                          : 'text-blue-100/80 hover:bg-white/10 hover:text-white'}">
-                <span class="flex-shrink-0 w-5 flex justify-center">${item.icon}</span>
+                          ? 'bg-[#FFC533] text-[#13243E] font-bold shadow-sm shadow-[#FFC533]/20 border border-[#FFE788]'
+                          : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'}">
+                <span class="flex-shrink-0 w-5 flex justify-center ${active ? 'text-[#13243E]' : 'text-slate-400 group-hover:text-slate-600'}">
+                    ${item.icon}
+                </span>
                 <span class="truncate sb-label">${esc(item.label)}</span>
-                ${active ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-white/80 sb-label"></span>' : ''}
+                ${active ? '<span class="ml-auto w-1.5 h-1.5 rounded-full bg-[#13243E]/60 sb-label"></span>' : ''}
             </a>`;
         }).join('');
 
@@ -77,64 +75,58 @@ const LAYOUT = (() => {
         return `
         <aside id="sidebar"
                class="fixed left-0 top-0 h-full w-64 lg:w-[4.5rem] lg:hover:w-64 z-40 flex flex-col overflow-hidden
-                      bg-gradient-to-b from-[#0c1f4a] via-[#0f2557] to-[#1a3680]
+                      bg-slate-100 border-r border-slate-200/80
                       transform -translate-x-full lg:translate-x-0
-                      transition-[width,transform] duration-300 ease-in-out shadow-2xl">
+                      transition-[width,transform] duration-300 ease-in-out shadow-2xl lg:shadow-none">
 
-            <!-- ── Logo ───────────────────────────────────────── -->
-            <div class="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-                <div class="w-9 h-9 bg-blue-400 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <div class="flex items-center gap-3 px-4 py-5 border-b border-slate-200 flex-shrink-0">
+                <div class="w-9 h-9 bg-[#FFC533] rounded-xl flex items-center justify-center flex-shrink-0 shadow-md shadow-[#FFC533]/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#13243E]" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                     </svg>
                 </div>
                 <div class="min-w-0 sb-label">
-                    <h1 class="text-white font-bold text-sm leading-none tracking-tight whitespace-nowrap">Arrendamientos</h1>
-                    <p class="text-blue-300/70 text-xs mt-0.5 whitespace-nowrap">Gestión de propiedades</p>
+                    <h1 class="text-slate-900 font-extrabold text-sm leading-none tracking-tight whitespace-nowrap">Arrendamientos</h1>
+                    <p class="text-slate-500 text-xs mt-0.5 whitespace-nowrap">Gestión de propiedades</p>
                 </div>
-                <!-- Botón cerrar en móvil -->
                 <button onclick="LAYOUT.cerrarSidebar()"
-                        class="ml-auto lg:hidden p-1 rounded-lg text-blue-300/70 hover:text-white hover:bg-white/10 transition-colors">
+                        class="ml-auto lg:hidden p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors">
                     ${ICONS.close}
                 </button>
             </div>
 
-            <!-- ── Pista visual: expandir al hover (solo desktop) ── -->
-            <div class="hidden lg:flex justify-center py-1.5 text-blue-300/40 transition-opacity group-hover/sidebar:opacity-0">
+            <div class="hidden lg:flex justify-center py-1.5 text-slate-300 transition-opacity group-hover/sidebar:opacity-0 flex-shrink-0">
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
                 </svg>
             </div>
 
-            <!-- ── Navegación ─────────────────────────────────── -->
             <nav class="flex-1 px-3 py-2 lg:py-4 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                <p class="text-blue-300/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2 whitespace-nowrap sb-label">
+                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest px-3 mb-2 whitespace-nowrap sb-label">
                     ${esc(navSection)}
                 </p>
                 ${navHTML}
             </nav>
 
-            <!-- ── Usuario + Logout ───────────────────────────── -->
-            <div class="px-3 py-4 border-t border-white/10 space-y-2">
+            <div class="px-3 py-4 border-t border-slate-200 space-y-2 bg-slate-50 flex-shrink-0">
                 <div class="flex items-center gap-3 px-1.5 py-2">
-                    <div class="w-9 h-9 rounded-xl bg-blue-400/25 border border-blue-300/30
-                                flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    <div class="w-8 h-8 rounded-xl bg-white border border-slate-200
+                                flex items-center justify-center text-slate-700 text-xs font-bold flex-shrink-0 shadow-sm">
                         ${esc(iniciales)}
                     </div>
                     <div class="flex-1 min-w-0 sb-label">
-                        <p class="text-white text-sm font-semibold truncate leading-none mb-0.5 whitespace-nowrap">
+                        <p class="text-slate-800 text-sm font-semibold truncate leading-none mb-0.5 whitespace-nowrap">
                             ${esc(usuario.nombre_completo)}
                         </p>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-400/20 text-blue-200 text-[10px] font-medium">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-600 text-[10px] font-semibold whitespace-nowrap">
                             ${esc(rolLabel)}
                         </span>
                     </div>
                 </div>
                 <button onclick="AUTH.cerrarSesion()"
                         class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm overflow-hidden
-                               bg-red-600/95 text-white hover:bg-red-500 active:bg-red-700
-                               shadow-lg shadow-red-900/40 ring-1 ring-red-400/30
-                               transition-all duration-200 font-semibold">
+                               bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white
+                               transition-all duration-200 font-semibold group">
                     <span class="flex-shrink-0 w-4 flex justify-center">${ICONS.logout}</span>
                     <span class="whitespace-nowrap sb-label">Cerrar sesión</span>
                 </button>
@@ -143,7 +135,7 @@ const LAYOUT = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Generador del HTML completo del layout (con ajuste de margen)
+    // Generador del HTML completo del layout (con margen izquierdo dinámico)
     // ──────────────────────────────────────────────────────────────
     function _buildLayout(usuario, navItems, activePage, contenidoPagina, iniciales) {
         const sidebar  = _buildSidebar(usuario, navItems, activePage);
@@ -163,20 +155,16 @@ const LAYOUT = (() => {
         return `
         ${sidebar}
 
-        <!-- ── Overlay móvil ─────────────────────────────────── -->
         <div id="sidebar-overlay"
-             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 hidden lg:hidden"
+             class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 hidden lg:hidden"
              onclick="LAYOUT.cerrarSidebar()">
         </div>
 
-        <!-- ── Área principal (margen izquierdo dinámico) ────── -->
-        <div id="main-shell" class="lg:ml-[4.5rem] flex flex-col min-h-screen bg-slate-50/80 transition-[margin] duration-300 ease-in-out">
+        <div id="main-shell" class="lg:ml-[4.5rem] flex flex-col min-h-screen bg-[#F5F7F9] transition-[margin] duration-300 ease-in-out">
 
-            <!-- Top bar -->
             <header class="sticky top-0 z-20 flex items-center gap-3 px-4 lg:px-6 h-16
-                           bg-white/80 backdrop-blur-md border-b border-slate-200/70 shadow-sm">
+                           bg-white/90 backdrop-blur-md border-b border-slate-200/70 shadow-sm">
 
-                <!-- Hamburger (solo móvil) -->
                 <button id="hamburger-btn"
                         onclick="LAYOUT.abrirSidebar()"
                         class="lg:hidden p-2 -ml-1 rounded-xl text-slate-500 hover:text-slate-700
@@ -184,7 +172,6 @@ const LAYOUT = (() => {
                     ${ICONS.hamburger}
                 </button>
 
-                <!-- Título + fecha -->
                 <div class="flex-1 min-w-0">
                     <h2 id="page-title" class="text-slate-800 font-bold text-sm lg:text-base truncate leading-tight">
                         &nbsp;
@@ -194,23 +181,20 @@ const LAYOUT = (() => {
                     </p>
                 </div>
 
-                <!-- Chip de fecha -->
                 <div class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/80 text-slate-500 text-xs font-semibold">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span>${esc(fechaCorta)}</span>
                 </div>
 
-                <!-- Badge usuario -->
                 <div class="flex items-center gap-2.5 pl-1 sm:pl-3 sm:border-l sm:border-slate-200">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center
-                                text-white text-xs font-bold shadow-sm shadow-blue-600/30">
+                    <div class="w-8 h-8 bg-[#FFC533] rounded-lg flex items-center justify-center
+                                text-[#13243E] text-xs font-bold shadow-sm shadow-[#FFC533]/30">
                         ${esc(iniciales)}
                     </div>
                     <span class="hidden sm:inline text-slate-600 text-sm font-medium">${esc(nombre1)}</span>
                 </div>
             </header>
 
-            <!-- Contenido de la página -->
             <main id="main-content" class="flex-1 p-4 lg:p-6">
                 ${contenidoPagina}
             </main>
@@ -234,7 +218,7 @@ const LAYOUT = (() => {
 
     // ──────────────────────────────────────────────────────────────
     // Proximidad: expande el sidebar cuando el mouse se acerca al borde
-    // izquierdo (solo desktop). Sin errores de async.
+    // izquierdo (solo desktop).
     // ──────────────────────────────────────────────────────────────
     let _proxActive = false;
     function _initProximidadSidebar() {
@@ -248,8 +232,6 @@ const LAYOUT = (() => {
                 const sb = document.getElementById('sidebar');
                 if (!sb || window.innerWidth < 1024) return;
                 const x = e.clientX;
-                // Si el cursor está a menos de 120px del borde izquierdo, añadimos una clase temporal.
-                // Para no interferir con el hover normal, usamos una clase que fuerza la expansión.
                 if (x <= 120) {
                     sb.classList.add('proximity-expand');
                 } else {
@@ -303,7 +285,7 @@ const LAYOUT = (() => {
         // 8. Inicializar el efecto de proximidad (solo desktop)
         _initProximidadSidebar();
 
-        // 9. NOTIFICACIONES: exactamente igual que en tu versión main
+        // 9. NOTIFICACIONES & TOASTS
         try {
             const base = window.location.pathname.includes('/pages/') ? '../' : '';
             if (!window.TOAST) {
@@ -348,13 +330,27 @@ const LAYOUT = (() => {
 
 window.LAYOUT = LAYOUT;
 
-// Pequeño CSS adicional para que la clase proximity-expand funcione
-// (puedes ponerlo en tu CSS global o en un <style> inline)
+// CSS Inyectado dinámicamente para soportar la expansión por proximidad e interacciones fluidas
 (function addProximityStyle() {
     const style = document.createElement('style');
     style.textContent = `
+        /* Ocultar etiquetas por defecto en versión colapsada desktop */
+        @media (min-width: 1024px) {
+            #sidebar .sb-label {
+                opacity: 0;
+                transition: opacity 0.2s ease-in-out;
+                pointer-events: none;
+            }
+            #sidebar:hover .sb-label,
+            #sidebar.proximity-expand .sb-label {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        /* Estilos de expansión por proximidad */
         #sidebar.proximity-expand {
-            width: 16rem !important; /* 64 en Tailwind */
+            width: 16rem !important; /* Ancho completo */
         }
         @media (min-width: 1024px) {
             #sidebar.proximity-expand + #main-shell {

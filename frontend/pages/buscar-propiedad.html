@@ -15,164 +15,94 @@
             theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] } } },
         };
     </script>
-    
+
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 
-<body class="font-sans antialiased bg-slate-50">
+<body class="font-sans antialiased bg-[#F5F7F9]">
 
-    <div id="initial-loader" class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
-        <p class="text-blue-200 text-sm font-medium">Buscando propiedades increíbles…</p>
+    <div id="initial-loader" class="fixed inset-0 bg-[#FFC533] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-[#13243E]/10 border-t-[#13243E] rounded-full animate-spin mb-4"></div>
+        <p class="text-[#13243E] text-sm font-semibold tracking-wide">Buscando propiedades…</p>
     </div>
 
     <div id="page-template" class="hidden">
 
         <div class="mb-6 anim-fade-in-up">
-            <h3 class="text-slate-900 font-bold text-2xl">Encuentra tu próximo espacio</h3>
-            <p class="text-slate-500 text-sm mt-1">Filtra por precio estimado, beneficios y ubicación para encontrar la propiedad ideal para ti.</p>
+            <h3 class="text-[#13243E] font-extrabold text-xl flex items-center gap-2">
+                <i class="fa-solid fa-map-location-dot text-[#FFC533]"></i> Explorar Propiedades
+            </h3>
+            <p class="text-[#6F88A1] text-sm mt-0.5 font-medium">Encuentra el lugar ideal y solicita un contrato directamente con el dueño.</p>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-6 anim-fade-in-up anim-delay-1">
-            <div class="flex items-center gap-2 mb-4">
-                <i class="fas fa-filter text-blue-600"></i>
-                <h4 class="text-slate-800 font-bold text-sm">Filtros de Búsqueda</h4>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="relative col-span-1 md:col-span-2 lg:col-span-1">
-                    <label class="text-xs text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Palabra clave</label>
-                    <i class="fas fa-search absolute left-3 top-[34px] text-slate-400 text-sm"></i>
-                    <input id="f-buscar" type="text" placeholder="Ej. Centro, Reforma..."
-                           class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
-                </div>
+        <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
 
-                <div class="col-span-1">
-                    <label class="text-xs text-slate-500 font-bold uppercase tracking-wider block mb-1.5">Tipo</label>
+            <div class="w-full lg:w-1/2 xl:w-5/12 flex flex-col h-full bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden anim-fade-in-up anim-delay-1">
+
+                <div class="p-4 border-b border-slate-100 bg-white space-y-3 z-10 shadow-sm">
                     <div class="relative">
-                        <select id="f-tipo" class="w-full pl-3 pr-8 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none">
-                            <option value="">Todos los tipos</option>
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[#6F88A1]"></i>
+                        <input id="f-buscar" type="text" placeholder="Buscar por nombre, zona o ciudad..."
+                               class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] outline-none transition-all font-medium">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="f-tipo" class="px-3 py-2.5 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-xs text-[#13243E] font-bold outline-none transition-all">
+                            <option value="">Tipo de propiedad</option>
                             <option value="DEPARTAMENTO">Departamento</option>
                             <option value="CASA">Casa</option>
                             <option value="LOCAL">Local Comercial</option>
-                            <option value="TERRENO">Terreno</option>
                         </select>
-                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        <div class="flex gap-2">
+                            <input id="f-precio-min" type="number" placeholder="Min $" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-xs text-[#13243E] font-bold outline-none transition-all">
+                            <input id="f-precio-max" type="number" placeholder="Max $" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-xs text-[#13243E] font-bold outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-1">
+                        <label class="flex-shrink-0 relative">
+                            <input type="checkbox" name="beneficios" value="estacionamiento" class="peer sr-only">
+                            <div class="px-3 py-1.5 rounded-lg border border-slate-200 text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all peer-checked:bg-[#FFFBEB] peer-checked:border-[#FFE788] peer-checked:text-[#13243E]">
+                                <i class="fas fa-car mr-1"></i> Estacionamiento
+                            </div>
+                        </label>
+                        <label class="flex-shrink-0 relative">
+                            <input type="checkbox" name="beneficios" value="mascota" class="peer sr-only">
+                            <div class="px-3 py-1.5 rounded-lg border border-slate-200 text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all peer-checked:bg-[#FFFBEB] peer-checked:border-[#FFE788] peer-checked:text-[#13243E]">
+                                <i class="fas fa-paw mr-1"></i> Mascotas
+                            </div>
+                        </label>
+                        <label class="flex-shrink-0 relative">
+                            <input type="checkbox" name="beneficios" value="gimnasio" class="peer sr-only">
+                            <div class="px-3 py-1.5 rounded-lg border border-slate-200 text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all peer-checked:bg-[#FFFBEB] peer-checked:border-[#FFE788] peer-checked:text-[#13243E]">
+                                <i class="fas fa-dumbbell mr-1"></i> Gimnasio
+                            </div>
+                        </label>
                     </div>
                 </div>
 
-                <div class="col-span-1 md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs text-slate-500 font-bold uppercase tracking-wider block mb-1.5" title="Se basa en el histórico de contratos">Precio Est. Min.</label>
-                        <div class="relative">
-                            <i class="fas fa-dollar-sign absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                            <input type="number" id="f-precio-min" placeholder="0" class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500 font-bold uppercase tracking-wider block mb-1.5" title="Se basa en el histórico de contratos">Precio Est. Max.</label>
-                        <div class="relative">
-                            <i class="fas fa-dollar-sign absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                            <input type="number" id="f-precio-max" placeholder="Sin límite" class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                        </div>
+                <div class="px-4 py-2 bg-[#F5F7F9] border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                    <span id="count-resultados" class="text-xs font-bold text-[#13243E] uppercase tracking-wider">Cargando...</span>
+                </div>
+
+                <div id="lista-resultados" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#F5F7F9] custom-scrollbar">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
+                        <div class="h-4 bg-slate-100 rounded w-2/3 mb-2"></div>
+                        <div class="h-3 bg-slate-100 rounded w-1/2 mb-4"></div>
+                        <div class="h-8 bg-slate-50 rounded-lg w-1/3"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-4 pt-4 border-slate-100">
-                <div class="mt-4 pt-4 border-t border-slate-100" id="beneficios-checkboxes">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Beneficios del inmueble</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        
-                        <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
-                            <input type="checkbox" name="beneficios" value="estacionamiento" class="sr-only" />
-                            <div class="flex flex-col items-center text-center gap-2">
-                                <i class="fa-solid fa-square-parking text-2xl mb-1"></i>
-                                <span class="text-[11px] font-bold uppercase tracking-wide">Estacionamiento</span>
-                            </div>
-                            <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center opacity-0 transition-opacity [[data-checked=true]]:opacity-100 hidden has-[:checked]:flex">
-                                <i class="fa-solid fa-check text-[8px]"></i>
-                            </div>
-                        </label>
-
-                        <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
-                            <input type="checkbox" name="beneficios" value="gimnasio" class="sr-only" />
-                            <div class="flex flex-col items-center text-center gap-2">
-                                <i class="fa-solid fa-dumbbell text-2xl mb-1"></i>
-                                <span class="text-[11px] font-bold uppercase tracking-wide">Gimnasio</span>
-                            </div>
-                            <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
-                                <i class="fa-solid fa-check text-[8px]"></i>
-                            </div>
-                        </label>
-
-                        <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
-                            <input type="checkbox" name="beneficios" value="area_social" class="sr-only" />
-                            <div class="flex flex-col items-center text-center gap-2">
-                                <i class="fa-solid fa-champagne-glasses text-2xl mb-1"></i>
-                                <span class="text-[11px] font-bold uppercase tracking-wide">Área Social</span>
-                            </div>
-                            <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
-                                <i class="fa-solid fa-check text-[8px]"></i>
-                            </div>
-                        </label>
-
-                        <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
-                            <input type="checkbox" name="beneficios" value="jardin" class="sr-only" />
-                            <div class="flex flex-col items-center text-center gap-2">
-                                <i class="fa-solid fa-leaf text-2xl mb-1"></i>
-                                <span class="text-[11px] font-bold uppercase tracking-wide">Jardín</span>
-                            </div>
-                            <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
-                                <i class="fa-solid fa-check text-[8px]"></i>
-                            </div>
-                        </label>
-
-                        <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-300 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 text-slate-500 has-[:checked]:text-blue-700 shadow-sm">
-                            <input type="checkbox" name="beneficios" value="mascotas" class="sr-only" />
-                            <div class="flex flex-col items-center text-center gap-2">
-                                <i class="fa-solid fa-paw text-2xl mb-1"></i>
-                                <span class="text-[11px] font-bold uppercase tracking-wide">Mascotas</span>
-                            </div>
-                            <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-blue-500 bg-blue-500 text-white flex items-center justify-center hidden has-[:checked]:flex">
-                                <i class="fa-solid fa-check text-[8px]"></i>
-                            </div>
-                        </label>
-
-                    </div>
+            <div class="hidden lg:flex flex-col flex-1 h-full relative rounded-2xl overflow-hidden shadow-sm border border-slate-200 anim-fade-in-up anim-delay-2">
+                <div class="absolute inset-0 bg-slate-100">
+                    <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0"
+                            src="https://maps.google.com/maps?q=Mexico&t=m&z=5&output=embed&iwloc=near" allowfullscreen>
+                    </iframe>
                 </div>
-            </div>  
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-            <div class="lg:col-span-2">
-                <div class="flex items-center justify-between mb-3 px-1">
-                    <p class="text-slate-800 font-bold text-sm">Resultados Disponibles</p>
-                    <span id="count-resultados" class="bg-blue-100 text-blue-700 py-1 px-3 rounded-full text-xs font-bold shadow-sm">—</span>
-                </div>
-                <div id="lista-resultados" class="grid grid-cols-1 gap-4 lg:max-h-[700px] lg:overflow-y-auto lg:pr-2 custom-scrollbar"></div>
-            </div>
-
-            <div class="lg:col-span-3 sticky top-6">
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col h-[500px] lg:h-[700px]">
-                    <div class="bg-slate-800 p-3 flex justify-between items-center z-10">
-                        <span class="text-white text-sm font-semibold flex items-center gap-2">
-                            <i class="fas fa-map-marked-alt text-blue-400"></i> Vista de Ubicación
-                        </span>
-                        <span class="text-slate-400 text-xs">Selecciona una propiedad</span>
-                    </div>
-                    <div class="flex-1 relative w-full h-full bg-slate-100">
-                        <iframe 
-                            id="map-iframe" class="absolute inset-0 w-full h-full border-0" 
-                            loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" 
-                            src="https://maps.google.com/maps?q=Mexico&t=m&z=5&output=embed&iwloc=near">
-                        </iframe>
-                    </div>
-                </div>
-                <div id="panel-detalle" class="mt-4 bg-white rounded-2xl border-l-4 border-blue-500 shadow-md p-4 hidden anim-fade-in-up"></div>
             </div>
         </div>
     </div>
@@ -200,9 +130,10 @@
                 window.location.replace('dashboard-arrendador.html');
                 return;
             }
+
             BUSCAR_PROPIEDAD.init(usuario);
         } catch (err) {
-            console.error('[BUSCAR-PROPIEDAD] Error de init:', err);
+            console.error('[BUSCAR-PROP] Error de init:', err);
         }
     })();
     </script>

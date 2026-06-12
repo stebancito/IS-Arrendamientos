@@ -16,105 +16,89 @@
         };
     </script>
 </head>
-<body class="font-sans antialiased bg-slate-50">
+<body class="font-sans antialiased bg-[#F5F7F9]">
 
-    <!-- Loader inicial -->
     <div id="initial-loader"
-         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
-        <p class="text-blue-200 text-sm font-medium">Evaluando inquilinos…</p>
+         class="fixed inset-0 bg-[#FFC533] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-[#13243E]/10 border-t-[#13243E] rounded-full animate-spin mb-4"></div>
+        <p class="text-[#13243E] text-sm font-semibold tracking-wide">Evaluando inquilinos…</p>
     </div>
 
-    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
     <div id="page-template" class="hidden">
 
-        <!-- ╔═══════════════════════════════════════════════════╗ -->
-        <!-- ║                  CABECERA                         ║ -->
-        <!-- ╚═══════════════════════════════════════════════════╝ -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 anim-fade-in-up">
             <div>
-                <h3 class="text-slate-900 font-bold text-xl flex items-center gap-2">
-                    <i class="fa-solid fa-users text-blue-600"></i>
+                <h3 class="text-[#13243E] font-extrabold text-xl flex items-center gap-2">
+                    <i class="fa-solid fa-users text-[#FFC533]"></i>
                     Inquilinos y evaluaciones
                 </h3>
-                <p class="text-slate-500 text-sm mt-0.5">
+                <p class="text-[#6F88A1] text-sm mt-0.5 font-medium">
                     Semáforo de confianza basado en historial de pagos. Toca una tarjeta para ver el detalle.
                 </p>
             </div>
             <a href="nuevo-contrato.html"
-               class="btn-primary inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl
-                      bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
-                      shadow-md shadow-blue-600/25 self-start sm:self-auto">
+               class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl
+                      bg-[#FFC533] hover:bg-[#FFD44A] text-[#13243E] text-sm font-bold
+                      shadow-sm shadow-[#FFC533]/30 self-start sm:self-auto transition-colors">
                 <i class="fa-solid fa-plus text-xs"></i>
                 Nuevo contrato
             </a>
         </div>
 
-        <!-- ╔═══════════════════════════════════════════════════╗ -->
-        <!-- ║           MÉTRICAS DE SEMÁFORO                    ║ -->
-        <!-- ╚═══════════════════════════════════════════════════╝ -->
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
 
-            <!-- Total -->
-            <div class="stat-card bg-gradient-to-br from-[#0f2557] to-[#1d4ed8] rounded-2xl p-4
-                        border border-blue-900/30 shadow-lg shadow-blue-900/20 anim-fade-in-up anim-delay-1">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-blue-200/80 text-[10px] font-bold uppercase tracking-widest">Total</p>
-                    <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                        <i class="fa-solid fa-users text-blue-300 text-sm"></i>
+            <div class="stat-card bg-[#13243E] rounded-2xl p-4 shadow-lg shadow-[#13243E]/10 anim-fade-in-up anim-delay-1 relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 w-16 h-16 bg-[#FFC533]/10 rounded-full blur-xl pointer-events-none"></div>
+                <div class="flex items-center justify-between mb-2 relative z-10">
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest">Total</p>
+                    <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                        <i class="fa-solid fa-users text-[#FFC533] text-sm"></i>
                     </div>
                 </div>
-                <p id="m-total" class="text-white font-extrabold text-2xl">—</p>
+                <p id="m-total" class="text-white font-extrabold text-2xl relative z-10">—</p>
             </div>
 
-            <!-- Verdes -->
             <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Excelente</p>
-                    <span class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest">Excelente</p>
+                    <span class="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-sm shadow-green-500/50"></span>
                 </div>
                 <p id="m-verdes" class="text-green-600 font-extrabold text-2xl">—</p>
             </div>
 
-            <!-- Amarillos -->
             <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Regular</p>
-                    <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest">Regular</p>
+                    <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse shadow-sm shadow-amber-500/50"></span>
                 </div>
-                <p id="m-amarillos" class="text-amber-600 font-extrabold text-2xl">—</p>
+                <p id="m-amarillos" class="text-amber-500 font-extrabold text-2xl">—</p>
             </div>
 
-            <!-- Rojos -->
             <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">En riesgo</p>
-                    <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest">En riesgo</p>
+                    <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500/50"></span>
                 </div>
                 <p id="m-rojos" class="text-red-600 font-extrabold text-2xl">—</p>
             </div>
 
-            <!-- Sin datos -->
             <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Sin datos</p>
-                    <span class="w-3 h-3 rounded-full bg-slate-400"></span>
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest">Sin datos</p>
+                    <span class="w-3 h-3 rounded-full bg-slate-300"></span>
                 </div>
-                <p id="m-sin-datos" class="text-slate-600 font-extrabold text-2xl">—</p>
+                <p id="m-sin-datos" class="text-[#13243E] font-extrabold text-2xl">—</p>
             </div>
         </div>
 
-        <!-- ╔═══════════════════════════════════════════════════╗ -->
-        <!-- ║                   FILTROS                         ║ -->
-        <!-- ╚═══════════════════════════════════════════════════╝ -->
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5 anim-fade-in-up anim-delay-2">
             <div class="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div class="relative flex-1">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#6F88A1] text-sm"></i>
                     <input id="f-buscar" type="text" placeholder="Buscar por nombre, correo o propiedad…"
-                           class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                           class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-medium outline-none transition-all" />
                 </div>
-                <select id="f-nivel" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                <select id="f-nivel" class="px-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-bold outline-none transition-all">
                     <option value="">Todos los niveles</option>
                     <option value="VERDE">🟢 Excelente</option>
                     <option value="AMARILLO">🟡 Regular</option>
@@ -124,69 +108,32 @@
             </div>
         </div>
 
-        <!-- ╔═══════════════════════════════════════════════════╗ -->
-        <!-- ║          LISTADO DE INQUILINOS                    ║ -->
-        <!-- ╚═══════════════════════════════════════════════════╝ -->
         <div id="lista-inquilinos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <!-- Skeletons de carga -->
             <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-                <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div class="h-3 bg-slate-100 rounded w-1/3 mb-4"></div>
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-slate-200"></div>
+                    <div class="w-12 h-12 rounded-xl bg-slate-100"></div>
                     <div class="flex-1">
-                        <div class="h-4 bg-slate-200 rounded w-2/3 mb-2"></div>
-                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                        <div class="h-4 bg-slate-100 rounded w-2/3 mb-2"></div>
+                        <div class="h-3 bg-slate-100 rounded w-1/2"></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-                <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-slate-200"></div>
-                    <div class="flex-1">
-                        <div class="h-4 bg-slate-200 rounded w-2/3 mb-2"></div>
-                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse hidden md:block">
-                <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-12 h-12 rounded-xl bg-slate-200"></div>
-                    <div class="flex-1">
-                        <div class="h-4 bg-slate-200 rounded w-2/3 mb-2"></div>
-                        <div class="h-3 bg-slate-200 rounded w-1/2"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
-                    <div class="h-14 bg-slate-100 rounded-xl"></div>
+                    <div class="h-14 bg-slate-50 rounded-xl"></div>
+                    <div class="h-14 bg-slate-50 rounded-xl"></div>
+                    <div class="h-14 bg-slate-50 rounded-xl"></div>
                 </div>
             </div>
         </div>
 
-        <!-- ╔═══════════════════════════════════════════════════╗ -->
-        <!-- ║           LEYENDA DE SEMÁFORO                     ║ -->
-        <!-- ╚═══════════════════════════════════════════════════╝ -->
-        <div class="mt-6 bg-blue-50 rounded-2xl p-5 border border-blue-100 anim-fade-in-up anim-delay-4">
-            <div class="flex items-start gap-3">
-                <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <i class="fa-solid fa-traffic-light text-blue-700"></i>
+        <div class="mt-6 bg-[#FFFBEB] rounded-2xl p-6 border border-[#FFE788] shadow-sm anim-fade-in-up anim-delay-4">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-[#FFC533]/20 flex items-center justify-center flex-shrink-0 border border-[#FFE788]">
+                    <i class="fa-solid fa-traffic-light text-[#13243E]"></i>
                 </div>
-                <div class="text-xs text-slate-600 leading-relaxed">
-                    <p class="text-blue-900 font-bold text-sm mb-2">Semáforo de confianza</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="text-[11px] text-[#13243E]/80 leading-relaxed font-medium">
+                    <p class="text-[#13243E] font-extrabold text-sm mb-2 uppercase tracking-wide">Semáforo de confianza</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></span>
                             <span><strong>Excelente:</strong> Cumplimiento ≥ 90% y máx. 1 vencido.</span>
@@ -200,20 +147,17 @@
                             <span><strong>En riesgo:</strong> Cumplimiento &lt; 60% o &gt; 3 vencidos.</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-slate-400 flex-shrink-0"></span>
+                            <span class="w-3 h-3 rounded-full bg-slate-300 flex-shrink-0"></span>
                             <span><strong>Sin historial:</strong> Sin pagos pagados ni vencidos (RN-19).</span>
                         </div>
                     </div>
-                    <p class="mt-2 text-slate-400">
-                        <strong>RN-18:</strong> Solo se consideran contratos activos, finalizados o terminados.
+                    <p class="mt-3 text-[#6F88A1] pt-3 border-t border-[#FFE788]/50">
+                        <strong class="text-[#13243E]">RN-18:</strong> Solo se consideran contratos activos, finalizados o terminados.
                     </p>
                 </div>
             </div>
         </div>
     </div>
-    <!-- /page-template -->
-
-    <!-- Scripts -->
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/components/layout.js"></script>
