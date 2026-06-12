@@ -47,44 +47,52 @@
             </a>
         </div>
 
-        <!-- ── Métricas rápidas ── -->
+        <!-- ── Métricas rápidas (clickeables: filtran/abren la vista correspondiente) ── -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1">
+            <button type="button" data-goto="validar" aria-label="Ver pagos por validar"
+                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1 hover:border-blue-200 hover:ring-2 hover:ring-blue-100 transition">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Por validar</p>
                     <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                        <i class="fa-solid fa-paper-plane text-blue-600 text-sm"></i>
+                        <i class="fa-solid fa-paper-plane text-blue-600 text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
                 <p id="m-reportados" class="text-blue-600 font-bold text-2xl">—</p>
-            </div>
-            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2">
+                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>Revisar</p>
+            </button>
+            <button type="button" data-goto="historial" data-estado="PAGADO" aria-label="Ver pagos pagados en el historial"
+                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2 hover:border-green-200 hover:ring-2 hover:ring-green-100 transition">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pagados</p>
                     <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
-                        <i class="fa-solid fa-circle-check text-green-600 text-sm"></i>
+                        <i class="fa-solid fa-circle-check text-green-600 text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
                 <p id="m-pagados" class="text-green-600 font-bold text-2xl">—</p>
-            </div>
-            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3">
+                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
+            </button>
+            <button type="button" data-goto="historial" data-estado="VENCIDO" aria-label="Ver pagos vencidos en el historial"
+                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3 hover:border-red-200 hover:ring-2 hover:ring-red-100 transition">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Vencidos</p>
                     <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
-                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-sm"></i>
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
                 <p id="m-vencidos" class="text-red-600 font-bold text-2xl">—</p>
-            </div>
-            <div class="stat-card bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4">
+                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
+            </button>
+            <button type="button" data-goto="historial" data-estado="PENDIENTE" aria-label="Ver pagos pendientes en el historial"
+                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4 hover:border-amber-200 hover:ring-2 hover:ring-amber-100 transition">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pendientes</p>
                     <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                        <i class="fa-solid fa-clock text-amber-600 text-sm"></i>
+                        <i class="fa-solid fa-clock text-amber-600 text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
                 <p id="m-pendientes" class="text-amber-600 font-bold text-2xl">—</p>
-            </div>
+                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
+            </button>
         </div>
 
         <!-- ── Tabs + Filtros ── -->
@@ -110,7 +118,7 @@
                 </div>
 
                 <!-- Filtros (solo para historial) -->
-                <div class="flex flex-1 gap-2">
+                <div id="filtros-historial" class="flex flex-1 gap-2">
                     <div class="relative flex-1">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
                         <input id="f-buscar" type="text" placeholder="Buscar inquilino o propiedad…" aria-label="Buscar por inquilino o propiedad"
@@ -150,7 +158,9 @@
     <script src="../js/auth.js"></script>
     <script src="../js/components/layout.js"></script>
     <script src="../js/components/toast.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="../js/utils/calendario-helper.js"></script>
+    <script src="../js/utils/pdf-recibo.js"></script>
     <script src="../js/pagos-arrendador.js"></script>
 
     <script>

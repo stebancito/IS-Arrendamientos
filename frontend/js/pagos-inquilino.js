@@ -111,7 +111,8 @@ const PAGOS_INQUILINO = (() => {
             const found = _contratos.find(c => String(c.contrato_id) === contratoIdURL);
             if (found) {
                 _contratoActual = found;
-                if (sel) sel.value = contratoIdURL;
+                // El selector nativo se reemplazó por el dropdown personalizado
+                // (_renderCustomSelector), así que no hay un <select> que setear aquí.
             }
         }
         if (!_contratoActual && _contratos.length) {
@@ -402,6 +403,16 @@ const PAGOS_INQUILINO = (() => {
         _set('r-reportados', reportados);
         _set('r-cumplimiento', `${cumpl}%`);
         _set('r-deuda', H.fmtMoney(montoPendiente));
+
+        // Barra de progreso de cumplimiento (verde / ámbar / rojo según nivel)
+        const bar = document.getElementById('r-cumplimiento-bar');
+        if (bar) {
+            bar.style.width = `${cumpl}%`;
+            bar.className = 'h-full rounded-full transition-all duration-500 ' +
+                (cumpl >= 80 ? 'bg-green-400' : cumpl >= 50 ? 'bg-amber-400' : 'bg-red-400');
+        }
+        const barWrap = bar?.parentElement;
+        if (barWrap) barWrap.setAttribute('aria-valuenow', String(cumpl));
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -531,7 +542,8 @@ const PAGOS_INQUILINO = (() => {
             const puedeReportar = (p.estado === 'PENDIENTE' || p.estado === 'VENCIDO');
 
             html += `
-                <div class="flex items-center gap-3 bg-white rounded-xl border border-slate-100 shadow-sm p-3.5 hover:shadow-md transition-shadow">
+                <div data-detalle-id="${p.calendario_id}"
+                     class="flex items-center gap-3 bg-white rounded-xl border border-slate-100 shadow-sm p-3.5 hover:shadow-md hover:border-slate-200 transition cursor-pointer">
                     <!-- Indicador de estado -->
                     <div class="w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center flex-shrink-0">
                         <i class="fa-solid ${c.icon} ${c.text}"></i>
@@ -564,12 +576,22 @@ const PAGOS_INQUILINO = (() => {
         html += `</div>`;
         cont.innerHTML = html;
 
-        // Bind acciones
+        // Bind acciones: el botón "Reportar" no debe disparar el detalle.
         cont.querySelectorAll('[data-action="reportar"]').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const id = parseInt(btn.getAttribute('data-id'), 10);
                 const pago = _pagos.find(p => p.calendario_id === id);
                 if (pago) _abrirModalReportar(pago);
+            });
+        });
+
+        // Clic en la fila → detalle del pago (incluye descargar recibo si está pagado).
+        cont.querySelectorAll('[data-detalle-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                const id = parseInt(row.getAttribute('data-detalle-id'), 10);
+                const pago = _pagos.find(p => p.calendario_id === id);
+                if (pago) _abrirDetallePago(pago);
             });
         });
     }
@@ -661,6 +683,11 @@ const PAGOS_INQUILINO = (() => {
                                 class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-md">
                             <i class="fa-solid fa-paper-plane mr-1"></i> Reportar pago
                         </button>` : ''}
+                        ${pago.estado === 'PAGADO' ? `
+                        <button id="btn-recibo-detalle"
+                                class="flex-1 px-4 py-2.5 rounded-xl bg-[#0f2557] hover:bg-[#15346f] text-white text-sm font-semibold shadow-md">
+                            <i class="fa-solid fa-file-arrow-down mr-1"></i> Recibo
+                        </button>` : ''}
                     </div>
                 </div>
             </div>
@@ -672,6 +699,50 @@ const PAGOS_INQUILINO = (() => {
             document.getElementById('modal-detalle-pago')?.remove();
             _abrirModalReportar(pago);
         });
+
+        document.getElementById('btn-recibo-detalle')?.addEventListener('click', async (e) => {
+            await _descargarRecibo(pago, e.currentTarget);
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Descargar comprobante (recibo) de un pago validado.
+    // Los pagos de `_pagos` no traen el registro embebido, así que lo
+    // consultamos al vuelo para incluir método/referencia/monto recibido.
+    // ──────────────────────────────────────────────────────────────
+    async function _descargarRecibo(pago, btnEl) {
+        if (typeof PDF_RECIBO === 'undefined') return;
+        if (btnEl) AUTH.setLoading(btnEl, true);
+
+        let reg = null;
+        try {
+            const { data } = await window.supabaseClient
+                .from('registros_pago')
+                .select('pago_id, fecha_recibido, monto_recibido, metodo_pago, referencia')
+                .eq('calendario_id', pago.calendario_id)
+                .order('creado_en', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            reg = data;
+        } catch (err) {
+            console.warn('[PAGOS-INQ] No se pudo cargar el registro para el recibo:', err);
+        }
+
+        PDF_RECIBO.descargar({
+            folio:          reg?.pago_id || pago.calendario_id,
+            propiedad:      _contratoActual?.propiedades?.nombre,
+            inquilino:      _usuario?.nombre_completo,
+            arrendador:     _contratoActual?.propiedades?.usuarios?.nombre_completo,
+            periodo:        CALENDARIO_HELPER.formatearPeriodo(pago),
+            monto_esperado: pago.monto_esperado,
+            monto_recibido: reg?.monto_recibido ?? pago.monto_esperado,
+            metodo:         reg?.metodo_pago,
+            referencia:     reg?.referencia,
+            fecha_pago:     pago.fecha_pagado || reg?.fecha_recibido,
+            estado:         pago.estado,
+        });
+
+        if (btnEl) AUTH.setLoading(btnEl, false);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -732,6 +803,8 @@ const PAGOS_INQUILINO = (() => {
                                        value="${pago.monto_esperado}"
                                        class="input-brand w-full pl-7 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
                             </div>
+                            <p class="text-[11px] text-slate-400 mt-1">Monto de la cuota: ${H.fmtMoney(pago.monto_esperado)}</p>
+                            <p id="rp-monto-hint" class="hidden text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 mt-1.5"></p>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-600 mb-1.5">Método de pago *</label>
@@ -773,6 +846,24 @@ const PAGOS_INQUILINO = (() => {
         </div>`;
 
         document.body.insertAdjacentHTML('beforeend', html);
+
+        // Aviso en vivo si el monto que escribe difiere del esperado.
+        const inpMonto = document.getElementById('rp-monto');
+        const hintMonto = document.getElementById('rp-monto-hint');
+        const _chequearMonto = () => {
+            const v = parseFloat(inpMonto.value);
+            if (isNaN(v) || Math.abs(v - pago.monto_esperado) <= 0.01) {
+                hintMonto.classList.add('hidden');
+                return;
+            }
+            const diff = v - pago.monto_esperado;
+            const menos = diff < 0;
+            hintMonto.innerHTML = `<i class="fa-solid fa-circle-info mr-1"></i>` +
+                `Reportas ${menos ? 'menos' : 'más'} de la cuota (${menos ? '−' : '+'}${H.fmtMoney(Math.abs(diff))}). ` +
+                `El arrendador podría tardar más en validarlo.`;
+            hintMonto.classList.remove('hidden');
+        };
+        inpMonto.addEventListener('input', _chequearMonto);
 
         // Bind botón de confirmación
         document.getElementById('btn-confirmar-reporte').addEventListener('click', async () => {
