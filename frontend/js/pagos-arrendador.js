@@ -63,9 +63,11 @@ const PAGOS_ARRENDADOR = (() => {
             _tabActiva = tabURL;
         }
 
+
         _bindTabs();
         _bindFiltros();
-        await _cargarPagos();
+        _bindMetricas(); // De main (hace clickeables las tarjetas)
+        await _cargarPagos(); // De cambios-main (carga unificada)
     }
 
     async function _cargarPagos() {
@@ -124,9 +126,46 @@ const PAGOS_ARRENDADOR = (() => {
     function _pintarTabActiva() {
         document.querySelectorAll('.tab-pagos-arr').forEach(btn => {
             const activa = btn.getAttribute('data-tab') === _tabActiva;
+            btn.setAttribute('aria-selected', activa ? 'true' : 'false');
             btn.className = 'tab-pagos-arr flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition-all ' +
                 (activa ? 'bg-[#FFC533] text-[#13243E] shadow-sm' : 'text-[#6F88A1] hover:bg-slate-200/60 hover:text-[#13243E]');
         });
+
+        // Filtros contextuales por pestaña:
+        //   · Registrar  → sin filtros (es un formulario).
+        //   · Por validar→ solo búsqueda (por inquilino/propiedad).
+        //   · Historial  → búsqueda + filtro por estado.
+        const filtros    = document.getElementById('filtros-historial');
+        const buscarWrap = document.getElementById('f-buscar')?.closest('.relative');
+        const estadoSel  = document.getElementById('f-estado');
+        if (filtros)    filtros.classList.toggle('hidden', _tabActiva === 'registrar');
+        if (buscarWrap) buscarWrap.classList.toggle('hidden', _tabActiva === 'registrar');
+        if (estadoSel)  estadoSel.classList.toggle('hidden', _tabActiva !== 'historial');
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Métricas clickeables: cada tarjeta lleva a su vista/filtro.
+    // ──────────────────────────────────────────────────────────────
+    function _bindMetricas() {
+        document.querySelectorAll('[data-goto]').forEach(card => {
+            card.addEventListener('click', () => {
+                const destino = card.getAttribute('data-goto');
+                const estado  = card.getAttribute('data-estado');
+                _irATab(destino, estado);
+            });
+        });
+    }
+
+    function _irATab(tab, estado) {
+        _tabActiva = tab;
+        if (tab === 'historial') {
+            _histPage = 0;
+            const fEstado = document.getElementById('f-estado');
+            if (fEstado) fEstado.value = estado || '';
+        }
+        _pintarTabActiva();
+        _renderTab();
+        document.getElementById('tab-content')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function _renderTab() {
@@ -164,10 +203,32 @@ const PAGOS_ARRENDADOR = (() => {
         }
 
         const H = CALENDARIO_HELPER;
-        let html = `<div class="space-y-3">`;
+        
+        // Búsqueda por inquilino/propiedad (lógica de main)
+        const q = (document.getElementById('f-buscar')?.value || '').toLowerCase().trim();
+        const lista = q ? reportados.filter(p => {
+            const inq  = p.contratos?.inquilinos?.usuarios?.nombre_completo?.toLowerCase() || '';
+            const prop = p.contratos?.propiedades?.nombre?.toLowerCase() || '';
+            return inq.includes(q) || prop.includes(q);
+        }) : reportados;
 
-        reportados.forEach(p => {
+        if (!lista.length) {
+            cont.innerHTML = _htmlVacio('Ningún pago reportado coincide con tu búsqueda.', 'fa-magnifying-glass');
+            return;
+        }
+
+        let html = `
+            <div class="space-y-3">
+                <p class="text-slate-500 text-xs mb-2">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    ${q
+                        ? `<strong class="text-[#255FA4]">${lista.length}</strong> de ${reportados.length} pago(s) reportados coinciden.`
+                        : `Tienes <strong class="text-[#255FA4]">${reportados.length}</strong> pago(s) reportados esperando validación.`}
+                </p>`;
+
+        lista.forEach(p => {
             const c = H.colorPorEstado(p.estado);
+            const reg = p.registros_pago;
             const inqNombre = p.contratos?.inquilinos?.usuarios?.nombre_completo || 'Inquilino';
             const propNombre = p.contratos?.propiedades?.nombre || 'Propiedad';
             const periodo = H.formatearPeriodo(p);
@@ -200,17 +261,176 @@ const PAGOS_ARRENDADOR = (() => {
         html += `</div>`;
         cont.innerHTML = html;
 
-        cont.querySelectorAll('[data-action="abrir-validar"]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = parseInt(btn.getAttribute('data-id'), 10);
-                const pago = _todosPagos.find(p => p.calendario_id === id);
-                if (pago) _abrirModalValidar(pago);
+      cont.querySelectorAll('[data-action="abrir-validar"]').forEach(btn => {
+                  btn.addEventListener('click', () => {
+                      const id = parseInt(btn.getAttribute('data-id'), 10);
+                      const pago = _todosPagos.find(p => p.calendario_id === id);
+                      if (pago) _abrirModalValidar(pago);
+                  });
+              });
+          }
+
+          function _abrirModalValidar(pago) {
+              if (pago.estado !== 'REPORTADO') return;    
+        // Bind acciones
+        cont.querySelectorAll('[data-action]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const calId  = parseInt(btn.getAttribute('data-cal-id'), 10);
+                const pagoId = parseInt(btn.getAttribute('data-pago-id'), 10);
+                const action = btn.getAttribute('data-action');
+
+                if (action === 'aprobar') {
+                    // Si el monto reportado difiere del esperado, pedir
+                    // confirmación explícita antes de aprobar (evita errores).
+                    const pago = _pagosReportados.find(p => p.calendario_id === calId);
+                    const recibido = pago?.registros_pago?.monto_recibido;
+                    const esperado = pago?.monto_esperado;
+                    if (recibido != null && esperado != null && Math.abs(recibido - esperado) > 0.01) {
+                        _confirmarAprobacionDivergente(calId, pagoId, btn, recibido, esperado);
+                    } else {
+                        await _aprobarPago(calId, pagoId, btn);
+                    }
+                } else if (action === 'rechazar') {
+                    _abrirModalRechazo(calId, pagoId);
+                }
             });
         });
     }
 
-    function _abrirModalValidar(pago) {
-        if (pago.estado !== 'REPORTADO') return;
+    // ──────────────────────────────────────────────────────────────
+    // MODAL: Confirmar aprobación cuando el monto reportado ≠ esperado
+    // ──────────────────────────────────────────────────────────────
+    function _confirmarAprobacionDivergente(calendarioId, pagoId, btnEl, recibido, esperado) {
+        const H = CALENDARIO_HELPER;
+        const diff = recibido - esperado;
+        const menos = diff < 0;
+        document.getElementById('modal-confirmar-aprob')?.remove();
+
+        const html = `
+        <div id="modal-confirmar-aprob" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 anim-fade-in-up">
+            <div class="bg-white w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                        <i class="fa-solid fa-triangle-exclamation text-lg" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                        <p class="text-amber-800 font-bold text-sm">El monto no coincide</p>
+                        <p class="text-amber-700/80 text-xs">Confirma antes de aprobar</p>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 rounded-xl p-3 mb-4">
+                        <div>
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Esperado</p>
+                            <p class="text-slate-800 font-bold">${H.fmtMoney(esperado)}</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Reportado</p>
+                            <p class="text-blue-700 font-bold">${H.fmtMoney(recibido)}</p>
+                        </div>
+                        <div class="col-span-2 pt-2 border-t border-slate-200">
+                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Diferencia</p>
+                            <p class="font-bold ${menos ? 'text-red-600' : 'text-green-600'}">
+                                ${menos ? '−' : '+'}${H.fmtMoney(Math.abs(diff))}
+                                <span class="font-normal text-slate-500">${menos ? '(pagó de menos)' : '(pagó de más)'}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-4">
+                        Si apruebas, la cuota quedará marcada como <strong>Pagada</strong> con el monto reportado.
+                        Si el importe es incorrecto, considera <strong>rechazar</strong> el reporte.
+                    </p>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="document.getElementById('modal-confirmar-aprob').remove()"
+                                class="flex-1 px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 text-sm font-semibold">
+                            Cancelar
+                        </button>
+                        <button id="btn-confirmar-aprob" type="button"
+                                class="flex-1 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold shadow-md">
+                            <i class="fa-solid fa-check mr-1"></i> Aprobar igual
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', html);
+        document.getElementById('btn-confirmar-aprob').addEventListener('click', async () => {
+            document.getElementById('modal-confirmar-aprob')?.remove();
+            await _aprobarPago(calendarioId, pagoId, btnEl);
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // APROBAR pago
+    //   1. UPDATE registros_pago SET validado = true, validado_por_id
+    //   2. UPDATE calendario_pagos SET estado = 'PAGADO', fecha_pagado, validado_en
+    //
+    //   Prevención de colisiones: el WHERE incluye estado = 'REPORTADO'
+    //   para evitar aprobar un pago que ya fue procesado concurrentemente.
+    // ──────────────────────────────────────────────────────────────
+    async function _aprobarPago(calendarioId, pagoId, btnEl) {
+        AUTH.setLoading(btnEl, true);
+
+        try {
+            // ── 1. Validar con condición WHERE estado = 'REPORTADO' ──
+            // Si otro arrendador/pestaña ya procesó este pago, el UPDATE
+            // no afecta filas y detectamos la condición de carrera.
+            const { data: updatedCal, error: errCal } = await window.supabaseClient
+                .from('calendario_pagos')
+                .update({
+                    estado:      'PAGADO',
+                    fecha_pagado: new Date().toISOString().slice(0, 10),
+                    validado_en: new Date().toISOString(),
+                })
+                .eq('calendario_id', calendarioId)
+                .eq('estado', 'REPORTADO')   // ← prevención de colisión
+                .select('calendario_id');
+
+            if (errCal) throw errCal;
+
+            if (!updatedCal || updatedCal.length === 0) {
+                throw new Error('El pago ya fue procesado por otra sesión. Recarga la página.');
+            }
+
+            // ── 2. Marcar el registro de pago como validado ──
+            if (pagoId) {
+                const { error: errReg } = await window.supabaseClient
+                    .from('registros_pago')
+                    .update({
+                        validado:        true,
+                        validado_por_id: _usuario.usuario_id,
+                    })
+                    .eq('pago_id', pagoId);
+
+                if (errReg) {
+                    console.warn('[PAGOS-ARR] Error actualizando registros_pago (no crítico):', errReg);
+                }
+            }
+
+            // ── 3. Notificación al inquilino ──
+            const pagoInfo = _pagosReportados.find(p => p.calendario_id === calendarioId);
+            const inqUserId = pagoInfo?.contratos?.inquilinos?.usuarios?.usuario_id;
+            const propNombre = pagoInfo?.contratos?.propiedades?.nombre || 'la propiedad';
+
+            if (inqUserId) {
+                await window.supabaseClient.from('notificaciones').insert({
+                    usuario_id: inqUserId,
+                    titulo: '¡Tu pago fue validado!',
+                    mensaje: `El arrendador aprobó tu pago para "${propNombre}". Tu historial se actualizó.`,
+                    tipo: 'PAGO_PROXIMO',
+                    metadatos: { calendario_id: calendarioId },
+                });
+            }
+
+            if (window.TOAST) TOAST.success('Pago aprobado correctamente.');
+
+            // Refrescar
+            await _cargarPagosReportados();
+            await _cargarTodosLosPagos();
+            _renderMetricas();
+            _renderTab();
 
         const reg = pago.registros_pago?.[0];
         if (!reg) {
@@ -574,13 +794,32 @@ const PAGOS_ARRENDADOR = (() => {
             return;
         }
 
-        const totalPages = Math.ceil(filtrados.length / _HIST_LIMIT);
-        if (_histPage > totalPages) _histPage = 1;
+// Lógica de main: Calcular total recaudado en la lista filtrada
+        const recaudado = filtrados.reduce((s, p) => {
+            const rec = p.registros_pago?.[0]?.monto_recibido;
+            return p.estado === 'PAGADO' && rec ? s + rec : s;
+        }, 0);
+
+        const totalPages = Math.max(1, Math.ceil(filtrados.length / _HIST_LIMIT));
+        if (_histPage > totalPages) _histPage = totalPages;
+        if (_histPage < 1) _histPage = 1;
         const offset = (_histPage - 1) * _HIST_LIMIT;
         const paginaActual = filtrados.slice(offset, offset + _HIST_LIMIT);
 
         const H = CALENDARIO_HELPER;
-        let html = `<div class="space-y-2">`;
+        let html = `
+            <div class="flex items-center justify-between gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 mb-4">
+                <p class="text-[#6F88A1] text-xs font-medium">
+                    <i class="fa-solid fa-receipt text-[#FFC533] mr-1"></i>
+                    <strong class="text-[#13243E]">${filtrados.length}</strong> pago(s) ·
+                    Recaudado: <strong class="text-[#255FA4]">${H.fmtMoney(recaudado)}</strong>
+                </p>
+                <button id="btn-export-csv" type="button"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#13243E] bg-[#FFC533]/20 hover:bg-[#FFC533] border border-[#FFE788] transition-colors">
+                    <i class="fa-solid fa-file-csv" aria-hidden="true"></i> Exportar
+                </button>
+            </div>
+            <div class="space-y-3">`;
 
         paginaActual.forEach(p => {
             const c = H.colorPorEstado(p.estado);
@@ -589,9 +828,11 @@ const PAGOS_ARRENDADOR = (() => {
             const reg = p.registros_pago?.[0];
 
             html += `
-                <div class="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                  <button type="button" data-hist-id="${p.calendario_id}"
+                     class="w-full text-left flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:shadow-md hover:border-[#FFE788] transition-all duration-200">
                     <div class="w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center flex-shrink-0 border ${c.border}">
-                        <i class="fa-solid ${c.icon} ${c.text}"></i>
+                        <i class="fa-solid ${c.icon} ${c.text}" aria-hidden="true"></i>
+
                     </div>
 
                     <div class="flex-1 min-w-0">
@@ -613,7 +854,8 @@ const PAGOS_ARRENDADOR = (() => {
                         <p class="text-[#6F88A1] text-[9px] uppercase font-bold tracking-widest">Vía</p>
                         <p class="text-[#13243E] text-xs font-bold mt-0.5"><i class="fa-solid fa-wallet mr-1 text-[#FFC533]"></i>${esc(reg.metodo_pago)}</p>
                     </div>` : ''}
-                </div>`;
+                    <i class="fa-solid fa-chevron-right text-slate-300 text-xs flex-shrink-0" aria-hidden="true"></i>
+                </button>`;
         });
         html += `</div>`;
 
@@ -648,6 +890,145 @@ const PAGOS_ARRENDADOR = (() => {
                 document.getElementById('tab-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         });
+
+        // Clic en un pago → modal de detalle
+        cont.querySelectorAll('[data-hist-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                const id = parseInt(row.getAttribute('data-hist-id'), 10);
+                const pago = lista.find(p => p.calendario_id === id);
+                if (pago) _abrirDetalleHistorial(pago);
+            });
+        });
+
+        // Exportar la lista filtrada (completa, no solo la página) a CSV
+        document.getElementById('btn-export-csv')?.addEventListener('click', () => _exportarCSV(lista));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // MODAL: Detalle de un pago del historial (solo lectura) + recibo PDF
+    // ──────────────────────────────────────────────────────────────
+    function _abrirDetalleHistorial(p) {
+        const H = CALENDARIO_HELPER;
+        const c = H.colorPorEstado(p.estado);
+        const reg = p.registros_pago;
+        const inqNombre = p.contratos?.inquilinos?.usuarios?.nombre_completo || 'Inquilino';
+        const propNombre = p.contratos?.propiedades?.nombre || 'Propiedad';
+        const metodoLabels = {
+            TRANSFERENCIA: 'Transferencia', EFECTIVO: 'Efectivo',
+            DEPOSITO: 'Depósito', TARJETA: 'Tarjeta', OTRO: 'Otro'
+        };
+
+        document.getElementById('modal-detalle-hist')?.remove();
+
+        const fila = (label, valor, claseValor = 'text-slate-800 font-semibold') => `
+            <div class="flex justify-between gap-3 text-sm">
+                <span class="text-slate-500">${label}</span>
+                <span class="${claseValor} text-right">${valor}</span>
+            </div>`;
+
+        const html = `
+        <div id="modal-detalle-hist" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 anim-fade-in-up">
+            <div class="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 ${c.bgSoft} ${c.border} border-b flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center">
+                        <i class="fa-solid ${c.icon} ${c.text} text-lg" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="${c.text} font-bold text-sm">${c.label}</p>
+                        <p class="text-slate-500 text-xs truncate">${esc(inqNombre)} · ${esc(propNombre)}</p>
+                    </div>
+                </div>
+                <div class="p-5 space-y-2.5">
+                    ${fila('Periodo', esc(H.formatearPeriodo(p)))}
+                    ${fila('Monto esperado', H.fmtMoney(p.monto_esperado))}
+                    ${fila('Vencimiento', H.fmtFecha(p.fecha_limite))}
+                    ${p.fecha_pagado ? fila('Fecha de pago', H.fmtFecha(p.fecha_pagado), 'text-green-700 font-semibold') : ''}
+                    ${reg?.monto_recibido ? `
+                        <div class="pt-2.5 mt-1 border-t border-slate-100 space-y-2.5">
+                            ${fila('Monto recibido', H.fmtMoney(reg.monto_recibido), 'text-green-700 font-bold')}
+                            ${fila('Método', metodoLabels[reg.metodo_pago] || reg.metodo_pago || '—')}
+                            ${reg.referencia ? fila('Referencia', esc(reg.referencia)) : ''}
+                            ${fila('Validado', reg.validado ? '<i class="fa-solid fa-circle-check text-green-600"></i> Sí' : '<i class="fa-solid fa-clock text-amber-500"></i> Pendiente')}
+                        </div>` : `
+                        <p class="text-slate-400 text-xs pt-2 border-t border-slate-100">Aún no hay un registro de pago asociado a esta cuota.</p>`}
+
+                    <div class="flex gap-2 mt-3">
+                        <button type="button" onclick="document.getElementById('modal-detalle-hist').remove()"
+                                class="flex-1 px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 text-sm font-semibold">
+                            Cerrar
+                        </button>
+                        ${p.estado === 'PAGADO' ? `
+                        <button id="btn-recibo-hist" type="button"
+                                class="flex-1 px-4 py-2.5 rounded-xl bg-[#0f2557] hover:bg-[#15346f] text-white text-sm font-semibold shadow-md">
+                            <i class="fa-solid fa-file-arrow-down mr-1" aria-hidden="true"></i> Descargar recibo
+                        </button>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        document.getElementById('btn-recibo-hist')?.addEventListener('click', () => {
+            if (typeof PDF_RECIBO === 'undefined') return;
+            PDF_RECIBO.descargar({
+                folio:          reg?.pago_id || p.calendario_id,
+                propiedad:      propNombre,
+                inquilino:      inqNombre,
+                periodo:        H.formatearPeriodo(p),
+                monto_esperado: p.monto_esperado,
+                monto_recibido: reg?.monto_recibido,
+                metodo:         reg?.metodo_pago,
+                referencia:     reg?.referencia,
+                fecha_pago:     p.fecha_pagado || reg?.fecha_recibido,
+                estado:         p.estado,
+            });
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Exportar historial filtrado a CSV (descarga local, sin backend).
+    // ──────────────────────────────────────────────────────────────
+    function _exportarCSV(lista) {
+        const H = CALENDARIO_HELPER;
+        const estadoLabel = { PAGADO: 'Pagado', PENDIENTE: 'Pendiente', VENCIDO: 'Vencido', REPORTADO: 'Reportado' };
+
+        const cell = (v) => {
+            const s = (v === null || v === undefined) ? '' : String(v);
+            return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+
+        const cabeceras = ['Inquilino', 'Propiedad', 'Periodo', 'Estado',
+            'Monto esperado', 'Monto recibido', 'Metodo', 'Referencia', 'Vencimiento', 'Fecha pago'];
+
+        const filas = lista.map(p => {
+            const reg = p.registros_pago;
+            return [
+                p.contratos?.inquilinos?.usuarios?.nombre_completo || '',
+                p.contratos?.propiedades?.nombre || '',
+                H.formatearPeriodo(p),
+                estadoLabel[p.estado] || p.estado || '',
+                p.monto_esperado ?? '',
+                reg?.monto_recibido ?? '',
+                reg?.metodo_pago || '',
+                reg?.referencia || '',
+                p.fecha_limite || '',
+                p.fecha_pagado || '',
+            ].map(cell).join(',');
+        });
+
+        const csv = '﻿' + [cabeceras.map(cell).join(','), ...filas].join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `historial-pagos-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        if (window.TOAST) TOAST.success(`Exportados ${lista.length} pago(s) a CSV.`);
     }
 
     // ──────────────────────────────────────────────────────────────
