@@ -1,29 +1,6 @@
 // ================================================================
 // pagos-arrendador.js  –  Módulo Dev 4 (Gestión de Pagos – Arrendador)
 // ================================================================
-// Responsabilidades:
-//   - RF-23    : Validar pagos reportados por inquilinos (aprobar/rechazar).
-//   - RF-25    : Registrar pagos manuales (efectivo, fuera de plataforma).
-//   - RF-26    : Ver historial completo de pagos de todas las propiedades.
-//   - RN-12    : No aprobar un pago que no esté en estado 'REPORTADO'.
-//   - RN-13    : Al rechazar, el estado vuelve a PENDIENTE y se elimina
-//                el registro de registros_pago (para que el inquilino pueda
-//                reportar de nuevo).
-//
-// Tabs:
-//   1. Por Validar   → Pagos REPORTADO esperando aprobación.
-//   2. Registrar     → Registro manual de pagos (efectivo, etc).
-//   3. Historial     → Todos los pagos de todas las propiedades.
-//
-// Al inicializar se llama a .rpc('actualizar_pagos_vencidos') para
-// marcar automáticamente los pagos PENDIENTE cuya fecha_limite < hoy.
-//
-// Modales: Se inyectan dinámicamente con insertAdjacentHTML.
-//
-// Dependencias:
-//   supabase-config.js · auth.js · layout.js · toast.js
-//   utils/calendario-helper.js
-// ================================================================
 
 const PAGOS_ARRENDADOR = (() => {
 
@@ -63,11 +40,10 @@ const PAGOS_ARRENDADOR = (() => {
             _tabActiva = tabURL;
         }
 
-
         _bindTabs();
         _bindFiltros();
-        _bindMetricas(); // De main (hace clickeables las tarjetas)
-        await _cargarPagos(); // De cambios-main (carga unificada)
+        _bindMetricas(); 
+        await _cargarPagos(); 
     }
 
     async function _cargarPagos() {
@@ -131,10 +107,6 @@ const PAGOS_ARRENDADOR = (() => {
                 (activa ? 'bg-[#FFC533] text-[#13243E] shadow-sm' : 'text-[#6F88A1] hover:bg-slate-200/60 hover:text-[#13243E]');
         });
 
-        // Filtros contextuales por pestaña:
-        //   · Registrar  → sin filtros (es un formulario).
-        //   · Por validar→ solo búsqueda (por inquilino/propiedad).
-        //   · Historial  → búsqueda + filtro por estado.
         const filtros    = document.getElementById('filtros-historial');
         const buscarWrap = document.getElementById('f-buscar')?.closest('.relative');
         const estadoSel  = document.getElementById('f-estado');
@@ -143,9 +115,6 @@ const PAGOS_ARRENDADOR = (() => {
         if (estadoSel)  estadoSel.classList.toggle('hidden', _tabActiva !== 'historial');
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Métricas clickeables: cada tarjeta lleva a su vista/filtro.
-    // ──────────────────────────────────────────────────────────────
     function _bindMetricas() {
         document.querySelectorAll('[data-goto]').forEach(card => {
             card.addEventListener('click', () => {
@@ -159,7 +128,7 @@ const PAGOS_ARRENDADOR = (() => {
     function _irATab(tab, estado) {
         _tabActiva = tab;
         if (tab === 'historial') {
-            _histPage = 0;
+            _histPage = 1;
             const fEstado = document.getElementById('f-estado');
             if (fEstado) fEstado.value = estado || '';
         }
@@ -204,7 +173,6 @@ const PAGOS_ARRENDADOR = (() => {
 
         const H = CALENDARIO_HELPER;
         
-        // Búsqueda por inquilino/propiedad (lógica de main)
         const q = (document.getElementById('f-buscar')?.value || '').toLowerCase().trim();
         const lista = q ? reportados.filter(p => {
             const inq  = p.contratos?.inquilinos?.usuarios?.nombre_completo?.toLowerCase() || '';
@@ -228,11 +196,10 @@ const PAGOS_ARRENDADOR = (() => {
 
         lista.forEach(p => {
             const c = H.colorPorEstado(p.estado);
-            const reg = p.registros_pago;
             const inqNombre = p.contratos?.inquilinos?.usuarios?.nombre_completo || 'Inquilino';
             const propNombre = p.contratos?.propiedades?.nombre || 'Propiedad';
             const periodo = H.formatearPeriodo(p);
-            const reg = p.registros_pago?.[0]; // Último reporte
+            const reg = p.registros_pago?.[0]; 
             const metodo = reg ? reg.metodo_pago : 'N/D';
 
             html += `
@@ -261,177 +228,18 @@ const PAGOS_ARRENDADOR = (() => {
         html += `</div>`;
         cont.innerHTML = html;
 
-      cont.querySelectorAll('[data-action="abrir-validar"]').forEach(btn => {
-                  btn.addEventListener('click', () => {
-                      const id = parseInt(btn.getAttribute('data-id'), 10);
-                      const pago = _todosPagos.find(p => p.calendario_id === id);
-                      if (pago) _abrirModalValidar(pago);
-                  });
-              });
-          }
-
-          function _abrirModalValidar(pago) {
-              if (pago.estado !== 'REPORTADO') return;    
-        // Bind acciones
-        cont.querySelectorAll('[data-action]').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const calId  = parseInt(btn.getAttribute('data-cal-id'), 10);
-                const pagoId = parseInt(btn.getAttribute('data-pago-id'), 10);
-                const action = btn.getAttribute('data-action');
-
-                if (action === 'aprobar') {
-                    // Si el monto reportado difiere del esperado, pedir
-                    // confirmación explícita antes de aprobar (evita errores).
-                    const pago = _pagosReportados.find(p => p.calendario_id === calId);
-                    const recibido = pago?.registros_pago?.monto_recibido;
-                    const esperado = pago?.monto_esperado;
-                    if (recibido != null && esperado != null && Math.abs(recibido - esperado) > 0.01) {
-                        _confirmarAprobacionDivergente(calId, pagoId, btn, recibido, esperado);
-                    } else {
-                        await _aprobarPago(calId, pagoId, btn);
-                    }
-                } else if (action === 'rechazar') {
-                    _abrirModalRechazo(calId, pagoId);
-                }
+        cont.querySelectorAll('[data-action="abrir-validar"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.getAttribute('data-id'), 10);
+                const pago = _todosPagos.find(p => p.calendario_id === id);
+                if (pago) _abrirModalValidar(pago);
             });
         });
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // MODAL: Confirmar aprobación cuando el monto reportado ≠ esperado
-    // ──────────────────────────────────────────────────────────────
-    function _confirmarAprobacionDivergente(calendarioId, pagoId, btnEl, recibido, esperado) {
-        const H = CALENDARIO_HELPER;
-        const diff = recibido - esperado;
-        const menos = diff < 0;
-        document.getElementById('modal-confirmar-aprob')?.remove();
-
-        const html = `
-        <div id="modal-confirmar-aprob" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 anim-fade-in-up">
-            <div class="bg-white w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                        <i class="fa-solid fa-triangle-exclamation text-lg" aria-hidden="true"></i>
-                    </div>
-                    <div>
-                        <p class="text-amber-800 font-bold text-sm">El monto no coincide</p>
-                        <p class="text-amber-700/80 text-xs">Confirma antes de aprobar</p>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 rounded-xl p-3 mb-4">
-                        <div>
-                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Esperado</p>
-                            <p class="text-slate-800 font-bold">${H.fmtMoney(esperado)}</p>
-                        </div>
-                        <div>
-                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Reportado</p>
-                            <p class="text-blue-700 font-bold">${H.fmtMoney(recibido)}</p>
-                        </div>
-                        <div class="col-span-2 pt-2 border-t border-slate-200">
-                            <p class="text-slate-400 text-[10px] uppercase font-semibold">Diferencia</p>
-                            <p class="font-bold ${menos ? 'text-red-600' : 'text-green-600'}">
-                                ${menos ? '−' : '+'}${H.fmtMoney(Math.abs(diff))}
-                                <span class="font-normal text-slate-500">${menos ? '(pagó de menos)' : '(pagó de más)'}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <p class="text-slate-600 text-sm mb-4">
-                        Si apruebas, la cuota quedará marcada como <strong>Pagada</strong> con el monto reportado.
-                        Si el importe es incorrecto, considera <strong>rechazar</strong> el reporte.
-                    </p>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="document.getElementById('modal-confirmar-aprob').remove()"
-                                class="flex-1 px-4 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 text-sm font-semibold">
-                            Cancelar
-                        </button>
-                        <button id="btn-confirmar-aprob" type="button"
-                                class="flex-1 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold shadow-md">
-                            <i class="fa-solid fa-check mr-1"></i> Aprobar igual
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-
-        document.body.insertAdjacentHTML('beforeend', html);
-        document.getElementById('btn-confirmar-aprob').addEventListener('click', async () => {
-            document.getElementById('modal-confirmar-aprob')?.remove();
-            await _aprobarPago(calendarioId, pagoId, btnEl);
-        });
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // APROBAR pago
-    //   1. UPDATE registros_pago SET validado = true, validado_por_id
-    //   2. UPDATE calendario_pagos SET estado = 'PAGADO', fecha_pagado, validado_en
-    //
-    //   Prevención de colisiones: el WHERE incluye estado = 'REPORTADO'
-    //   para evitar aprobar un pago que ya fue procesado concurrentemente.
-    // ──────────────────────────────────────────────────────────────
-    async function _aprobarPago(calendarioId, pagoId, btnEl) {
-        AUTH.setLoading(btnEl, true);
-
-        try {
-            // ── 1. Validar con condición WHERE estado = 'REPORTADO' ──
-            // Si otro arrendador/pestaña ya procesó este pago, el UPDATE
-            // no afecta filas y detectamos la condición de carrera.
-            const { data: updatedCal, error: errCal } = await window.supabaseClient
-                .from('calendario_pagos')
-                .update({
-                    estado:      'PAGADO',
-                    fecha_pagado: new Date().toISOString().slice(0, 10),
-                    validado_en: new Date().toISOString(),
-                })
-                .eq('calendario_id', calendarioId)
-                .eq('estado', 'REPORTADO')   // ← prevención de colisión
-                .select('calendario_id');
-
-            if (errCal) throw errCal;
-
-            if (!updatedCal || updatedCal.length === 0) {
-                throw new Error('El pago ya fue procesado por otra sesión. Recarga la página.');
-            }
-
-            // ── 2. Marcar el registro de pago como validado ──
-            if (pagoId) {
-                const { error: errReg } = await window.supabaseClient
-                    .from('registros_pago')
-                    .update({
-                        validado:        true,
-                        validado_por_id: _usuario.usuario_id,
-                    })
-                    .eq('pago_id', pagoId);
-
-                if (errReg) {
-                    console.warn('[PAGOS-ARR] Error actualizando registros_pago (no crítico):', errReg);
-                }
-            }
-
-            // ── 3. Notificación al inquilino ──
-            const pagoInfo = _pagosReportados.find(p => p.calendario_id === calendarioId);
-            const inqUserId = pagoInfo?.contratos?.inquilinos?.usuarios?.usuario_id;
-            const propNombre = pagoInfo?.contratos?.propiedades?.nombre || 'la propiedad';
-
-            if (inqUserId) {
-                await window.supabaseClient.from('notificaciones').insert({
-                    usuario_id: inqUserId,
-                    titulo: '¡Tu pago fue validado!',
-                    mensaje: `El arrendador aprobó tu pago para "${propNombre}". Tu historial se actualizó.`,
-                    tipo: 'PAGO_PROXIMO',
-                    metadatos: { calendario_id: calendarioId },
-                });
-            }
-
-            if (window.TOAST) TOAST.success('Pago aprobado correctamente.');
-
-            // Refrescar
-            await _cargarPagosReportados();
-            await _cargarTodosLosPagos();
-            _renderMetricas();
-            _renderTab();
-
+    function _abrirModalValidar(pago) {
+        if (pago.estado !== 'REPORTADO') return;
+        
         const reg = pago.registros_pago?.[0];
         if (!reg) {
             if (window.TOAST) TOAST.error('No se encontró el reporte de pago en la base de datos.');
@@ -526,27 +334,29 @@ const PAGOS_ARRENDADOR = (() => {
         if (aprobado) btnRechazar.disabled = true; else btnAprobar.disabled = true;
 
         try {
-            // RN-12 y RN-13 implementadas
             if (aprobado) {
-                const { error: e1 } = await window.supabaseClient
+                // Validación estricta con Eq(estado, reportado) heredada de main para evitar colisiones
+                const { data: updatedCal, error: e1 } = await window.supabaseClient
                     .from('calendario_pagos')
-                    .update({ estado: 'PAGADO', fecha_pagado: reg.fecha_recibido })
-                    .eq('calendario_id', pago.calendario_id);
+                    .update({ estado: 'PAGADO', fecha_pagado: reg.fecha_recibido, validado_en: new Date().toISOString() })
+                    .eq('calendario_id', pago.calendario_id)
+                    .eq('estado', 'REPORTADO')
+                    .select('calendario_id');
+                    
                 if (e1) throw e1;
+                if (!updatedCal || updatedCal.length === 0) {
+                    throw new Error('El pago ya fue procesado por otra sesión. Recarga la página.');
+                }
 
                 const { error: e2 } = await window.supabaseClient
                     .from('registros_pago')
-                    .update({ validado: true })
+                    .update({ validado: true, validado_por_id: _usuario.usuario_id })
                     .eq('pago_id', reg.pago_id);
                 if (e2) throw e2;
 
                 _enviarNotificacion(pago, 'Pago aprobado', 'Tu arrendador ha validado tu pago. ¡Gracias!', 'PAGO_PROXIMO');
 
             } else {
-                // Rechazado: Vuelve a PENDIENTE y se elimina el registro
-                // NOTA: Para no perder el registro del rechazo, podríamos mantenerlo con validado=false
-                // pero la RN-13 dice que el inquilino pueda reportar de nuevo. Si hay constraint UNIQUE
-                // (calendario_id), es mejor borrarlo o hacer un soft delete. Lo borramos para liberar la cuota.
                 const { error: e1 } = await window.supabaseClient
                     .from('calendario_pagos')
                     .update({ estado: 'PENDIENTE', reportado_en: null })
@@ -568,7 +378,7 @@ const PAGOS_ARRENDADOR = (() => {
 
         } catch (err) {
             console.error('[PAGOS-ARR] Error validando:', err);
-            _alertaModal(alertBox, 'Ocurrió un error. Intenta de nuevo.');
+            _alertaModal(alertBox, err.message || 'Ocurrió un error. Intenta de nuevo.');
             AUTH.setLoading(aprobado ? btnAprobar : btnRechazar, false);
             if (aprobado) btnRechazar.disabled = false; else btnAprobar.disabled = false;
         }
@@ -737,7 +547,6 @@ const PAGOS_ARRENDADOR = (() => {
             AUTH.setLoading(btn, true);
 
             try {
-                // RF-25: Registrar el pago como validado automáticamente
                 const { error: e1 } = await window.supabaseClient
                     .from('registros_pago')
                     .insert({
@@ -794,7 +603,6 @@ const PAGOS_ARRENDADOR = (() => {
             return;
         }
 
-// Lógica de main: Calcular total recaudado en la lista filtrada
         const recaudado = filtrados.reduce((s, p) => {
             const rec = p.registros_pago?.[0]?.monto_recibido;
             return p.estado === 'PAGADO' && rec ? s + rec : s;
@@ -832,7 +640,6 @@ const PAGOS_ARRENDADOR = (() => {
                      class="w-full text-left flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:shadow-md hover:border-[#FFE788] transition-all duration-200">
                     <div class="w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center flex-shrink-0 border ${c.border}">
                         <i class="fa-solid ${c.icon} ${c.text}" aria-hidden="true"></i>
-
                     </div>
 
                     <div class="flex-1 min-w-0">
@@ -859,7 +666,6 @@ const PAGOS_ARRENDADOR = (() => {
         });
         html += `</div>`;
 
-        // Controles de Paginación
         if (totalPages > 1) {
             html += `
                 <div class="flex items-center justify-between mt-5 pt-4 border-t border-slate-200">
@@ -891,17 +697,15 @@ const PAGOS_ARRENDADOR = (() => {
             });
         });
 
-        // Clic en un pago → modal de detalle
         cont.querySelectorAll('[data-hist-id]').forEach(row => {
             row.addEventListener('click', () => {
                 const id = parseInt(row.getAttribute('data-hist-id'), 10);
-                const pago = lista.find(p => p.calendario_id === id);
+                const pago = _todosPagos.find(p => p.calendario_id === id);
                 if (pago) _abrirDetalleHistorial(pago);
             });
         });
 
-        // Exportar la lista filtrada (completa, no solo la página) a CSV
-        document.getElementById('btn-export-csv')?.addEventListener('click', () => _exportarCSV(lista));
+        document.getElementById('btn-export-csv')?.addEventListener('click', () => _exportarCSV(filtrados));
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -910,7 +714,7 @@ const PAGOS_ARRENDADOR = (() => {
     function _abrirDetalleHistorial(p) {
         const H = CALENDARIO_HELPER;
         const c = H.colorPorEstado(p.estado);
-        const reg = p.registros_pago;
+        const reg = p.registros_pago?.[0];
         const inqNombre = p.contratos?.inquilinos?.usuarios?.nombre_completo || 'Inquilino';
         const propNombre = p.contratos?.propiedades?.nombre || 'Propiedad';
         const metodoLabels = {
@@ -986,9 +790,6 @@ const PAGOS_ARRENDADOR = (() => {
         });
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Exportar historial filtrado a CSV (descarga local, sin backend).
-    // ──────────────────────────────────────────────────────────────
     function _exportarCSV(lista) {
         const H = CALENDARIO_HELPER;
         const estadoLabel = { PAGADO: 'Pagado', PENDIENTE: 'Pendiente', VENCIDO: 'Vencido', REPORTADO: 'Reportado' };
@@ -1002,7 +803,7 @@ const PAGOS_ARRENDADOR = (() => {
             'Monto esperado', 'Monto recibido', 'Metodo', 'Referencia', 'Vencimiento', 'Fecha pago'];
 
         const filas = lista.map(p => {
-            const reg = p.registros_pago;
+            const reg = p.registros_pago?.[0];
             return [
                 p.contratos?.inquilinos?.usuarios?.nombre_completo || '',
                 p.contratos?.propiedades?.nombre || '',
@@ -1017,7 +818,7 @@ const PAGOS_ARRENDADOR = (() => {
             ].map(cell).join(',');
         });
 
-        const csv = '﻿' + [cabeceras.map(cell).join(','), ...filas].join('\r\n');
+        const csv = '\uFEFF' + [cabeceras.map(cell).join(','), ...filas].join('\r\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1031,9 +832,6 @@ const PAGOS_ARRENDADOR = (() => {
         if (window.TOAST) TOAST.success(`Exportados ${lista.length} pago(s) a CSV.`);
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Helpers UI
-    // ──────────────────────────────────────────────────────────────
     function _set(id, val) {
         const el = document.getElementById(id);
         if (el) el.textContent = String(val ?? '—');
@@ -1063,7 +861,6 @@ const PAGOS_ARRENDADOR = (() => {
         if (cont) cont.innerHTML = _htmlVacio(msg, icon);
     }
 
-    // Bind para historial filtros
     function _bindFiltros() {
         ['f-buscar', 'f-estado'].forEach(id => {
             document.getElementById(id)?.addEventListener('input', () => {
@@ -1092,6 +889,17 @@ const PAGOS_ARRENDADOR = (() => {
         } catch (e) {
             console.error('[PAGOS-ARR] Error enviando notif:', e);
         }
+    }
+
+    // Pequeño helper por si no está global (para prevenir otro posible error)
+    function esc(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     return { init };
