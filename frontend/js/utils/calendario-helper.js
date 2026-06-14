@@ -1,51 +1,20 @@
 // ================================================================
 // utils/calendario-helper.js  –  Utilidades puras para el calendario de pagos
 // ================================================================
-// Funciones reutilizables por pagos-inquilino.js y pagos-arrendador.js.
-// NO dependen de Supabase ni del DOM. Son funciones puras y testeables.
-//
-// API pública:
-//   CALENDARIO_HELPER.obtenerMatrizMes(anio, mes)
-//   CALENDARIO_HELPER.agruparPagosPorFecha(pagos)
-//   CALENDARIO_HELPER.formatearPeriodo(pago)
-//   CALENDARIO_HELPER.colorPorEstado(estado)
-//   CALENDARIO_HELPER.fmtFecha(d)
-//   CALENDARIO_HELPER.fmtMoney(v)
-//   CALENDARIO_HELPER.nombreMes(mes)
-//   CALENDARIO_HELPER.iconoEstado(estado)
-// ================================================================
 
 const CALENDARIO_HELPER = (() => {
 
-    // ──────────────────────────────────────────────────────────────
-    // obtenerMatrizMes(anio, mes)
-    // ──────────────────────────────────────────────────────────────
-    // Devuelve una matriz de 6 semanas (filas) × 7 días (columnas)
-    // para renderizar una grilla de calendario. Cada celda es un
-    // objeto { dia, fecha, esMesActual, esHoy }.
-    //
-    // @param {number} anio  – Año (ej. 2025)
-    // @param {number} mes   – Mes 1-based (1=Ene … 12=Dic)
-    // @returns {Array<Array<Object>>}
-    // ──────────────────────────────────────────────────────────────
     function obtenerMatrizMes(anio, mes) {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
-        // Primer día del mes (Date usa mes 0-based)
         const primerDia = new Date(anio, mes - 1, 1);
-        // Último día del mes
         const ultimoDia = new Date(anio, mes, 0);
-
-        // Día de la semana del primer día (0=Dom, 1=Lun … 6=Sab)
-        // Ajustamos para que la semana empiece en Lunes:
-        //   Lun=0, Mar=1, … Dom=6
         const diaInicio = (primerDia.getDay() + 6) % 7;
         const totalDias = ultimoDia.getDate();
 
-        // Construir la matriz
         const matriz = [];
-        let diaActual = 1 - diaInicio; // puede empezar en negativo (días del mes anterior)
+        let diaActual = 1 - diaInicio;
 
         for (let semana = 0; semana < 6; semana++) {
             const fila = [];
@@ -56,7 +25,7 @@ const CALENDARIO_HELPER = (() => {
 
                 fila.push({
                     dia: fechaObj.getDate(),
-                    fecha: _formatoISO(fechaObj),  // 'YYYY-MM-DD'
+                    fecha: _formatoISO(fechaObj),
                     esMesActual,
                     esHoy,
                     fechaObj
@@ -65,30 +34,14 @@ const CALENDARIO_HELPER = (() => {
                 diaActual++;
             }
             matriz.push(fila);
-
-            // Si ya pasamos el último día y la fila siguiente sería toda del mes siguiente,
-            // podemos parar (pero mantenemos 6 filas para consistencia visual)
         }
-
         return matriz;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // agruparPagosPorFecha(pagos)
-    // ──────────────────────────────────────────────────────────────
-    // Recibe un array de pagos (cada uno con .fecha_limite en 'YYYY-MM-DD')
-    // y devuelve un Map<string, Array<pago>> donde la clave es la fecha ISO.
-    //
-    // Útil para cruzar con la matriz del calendario y pintar indicadores
-    // en los días que tienen pagos.
-    //
-    // @param {Array<Object>} pagos
-    // @returns {Map<string, Array<Object>>}
-    // ──────────────────────────────────────────────────────────────
     function agruparPagosPorFecha(pagos) {
         const mapa = new Map();
         (pagos || []).forEach(p => {
-            const fecha = (p.fecha_limite || '').slice(0, 10); // 'YYYY-MM-DD'
+            const fecha = (p.fecha_limite || '').slice(0, 10);
             if (!fecha) return;
             if (!mapa.has(fecha)) mapa.set(fecha, []);
             mapa.get(fecha).push(p);
@@ -96,22 +49,9 @@ const CALENDARIO_HELPER = (() => {
         return mapa;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // formatearPeriodo(pago)
-    // ──────────────────────────────────────────────────────────────
-    // Devuelve un string legible del periodo de cobertura del pago.
-    // Usa los campos periodo_inicio y periodo_fin si existen.
-    //
-    // Ejemplo: "01 Ene 2025 → 31 Ene 2025"
-    //          "01 Ene → 15 Ene"  (si mismo año)
-    //
-    // @param {Object} pago – objeto con { periodo_inicio, periodo_fin, fecha_limite, anio, mes }
-    // @returns {string}
-    // ──────────────────────────────────────────────────────────────
     function formatearPeriodo(pago) {
         if (!pago) return '—';
 
-        // Si tiene periodo_inicio y periodo_fin explícitos
         if (pago.periodo_inicio && pago.periodo_fin) {
             const ini = new Date(pago.periodo_inicio + 'T00:00:00');
             const fin = new Date(pago.periodo_fin + 'T00:00:00');
@@ -124,13 +64,11 @@ const CALENDARIO_HELPER = (() => {
             return `${ini.toLocaleDateString('es-MX', optsLargo)} → ${fin.toLocaleDateString('es-MX', optsLargo)}`;
         }
 
-        // Fallback: usar anio + mes para mostrar el mes completo
         if (pago.anio && pago.mes) {
             const nombre = nombreMes(pago.mes);
             return `${nombre} ${pago.anio}`;
         }
 
-        // Último fallback: fecha_limite
         if (pago.fecha_limite) {
             return fmtFecha(pago.fecha_limite);
         }
@@ -139,22 +77,16 @@ const CALENDARIO_HELPER = (() => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // colorPorEstado(estado)
-    // ──────────────────────────────────────────────────────────────
-    // Devuelve un objeto con las clases de Tailwind para cada estado
-    // de pago. Útil para badges, bordes y fondos.
-    //
-    // @param {string} estado – 'PENDIENTE'|'PAGADO'|'VENCIDO'|'REPORTADO'
-    // @returns {{ bg, border, text, dot, label, icon, bgSoft }}
+    // 🎨 INTEGRACIÓN PALETA DESIGN SYSTEM
     // ──────────────────────────────────────────────────────────────
     function colorPorEstado(estado) {
         const estilos = {
             PENDIENTE: {
-                bg:     'bg-amber-100',
-                bgSoft: 'bg-amber-50',
-                border: 'border-amber-200',
-                text:   'text-amber-700',
-                dot:    'bg-amber-500',
+                bg:     'bg-[#FFFBEB]',
+                bgSoft: 'bg-[#FFFBEB]',
+                border: 'border-[#FFE788]',
+                text:   'text-[#13243E]',
+                dot:    'bg-[#FFC533]',
                 label:  'Pendiente',
                 icon:   'fa-clock',
             },
@@ -177,11 +109,11 @@ const CALENDARIO_HELPER = (() => {
                 icon:   'fa-triangle-exclamation',
             },
             REPORTADO: {
-                bg:     'bg-blue-100',
-                bgSoft: 'bg-blue-50',
-                border: 'border-blue-200',
-                text:   'text-blue-700',
-                dot:    'bg-blue-500',
+                bg:     'bg-[#5A97D6]/15',
+                bgSoft: 'bg-[#5A97D6]/10',
+                border: 'border-[#5A97D6]/30',
+                text:   'text-[#255FA4]',
+                dot:    'bg-[#255FA4]',
                 label:  'Reportado',
                 icon:   'fa-paper-plane',
             },
@@ -190,18 +122,10 @@ const CALENDARIO_HELPER = (() => {
         return estilos[estado] || estilos.PENDIENTE;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // iconoEstado(estado)
-    // ──────────────────────────────────────────────────────────────
-    // Devuelve la clase FontAwesome del ícono para el estado.
-    // ──────────────────────────────────────────────────────────────
     function iconoEstado(estado) {
         return colorPorEstado(estado).icon;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Helpers de formato generales
-    // ──────────────────────────────────────────────────────────────
     function fmtFecha(d) {
         if (!d) return '—';
         return new Date(d + (d.length === 10 ? 'T00:00:00' : ''))
@@ -225,9 +149,6 @@ const CALENDARIO_HELPER = (() => {
         return nombres[mes] || `Mes ${mes}`;
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Helpers privados
-    // ──────────────────────────────────────────────────────────────
     function _formatoISO(date) {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -235,7 +156,6 @@ const CALENDARIO_HELPER = (() => {
         return `${y}-${m}-${d}`;
     }
 
-    // ── API pública ───────────────────────────────────────────────
     return {
         obtenerMatrizMes,
         agruparPagosPorFecha,

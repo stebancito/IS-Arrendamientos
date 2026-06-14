@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Valida pagos reportados, registra pagos manuales y consulta el historial de tus propiedades." />
-    <meta name="theme-color" content="#0f2557" />
     <title>Gestión de Pagos | Arrendamientos App</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,113 +17,110 @@
         };
     </script>
 </head>
-<body class="font-sans antialiased bg-slate-50">
+<body class="font-sans antialiased bg-[#F5F7F9]">
 
-    <!-- Loader inicial -->
     <div id="initial-loader" role="status" aria-live="polite"
-         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4" aria-hidden="true"></div>
-        <p class="text-blue-200 text-sm font-medium">Cargando gestión de pagos…</p>
+         class="fixed inset-0 bg-[#FFC533] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-[#13243E]/10 border-t-[#13243E] rounded-full animate-spin mb-4" aria-hidden="true"></div>
+        <p class="text-[#13243E] text-sm font-semibold tracking-wide">Cargando gestión de pagos…</p>
     </div>
 
-    <!-- Plantilla que LAYOUT.inyectarLayout() extraerá -->
     <div id="page-template" class="hidden">
 
-        <!-- ── Cabecera ── -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 anim-fade-in-up">
             <div>
-                <h3 class="text-slate-900 font-bold text-xl">Gestión de pagos</h3>
-                <p class="text-slate-500 text-sm mt-0.5">
+                <h3 class="text-[#13243E] font-extrabold text-xl">Gestión de pagos</h3>
+                <p class="text-[#6F88A1] text-sm mt-0.5 font-medium">
                     Valida los pagos reportados por inquilinos, registra pagos manuales y consulta el historial.
                 </p>
             </div>
             <a href="finanzas.html"
-               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600
-                      bg-white border border-slate-200 hover:bg-slate-100
-                      transition text-sm font-medium self-start sm:self-auto">
-                <i class="fa-solid fa-chart-pie text-xs" aria-hidden="true"></i>
+               class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[#13243E]
+                      bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300
+                      transition-colors text-sm font-bold self-start sm:self-auto shadow-sm">
+                <i class="fa-solid fa-chart-pie text-[#6F88A1]" aria-hidden="true"></i>
                 Ver finanzas
             </a>
         </div>
 
-        <!-- ── Métricas rápidas (clickeables: filtran/abren la vista correspondiente) ── -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             <button type="button" data-goto="validar" aria-label="Ver pagos por validar"
-                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1 hover:border-blue-200 hover:ring-2 hover:ring-blue-100 transition">
+                    class="stat-card w-full text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-1 hover:border-[#5A97D6]/40 hover:ring-2 hover:ring-[#5A97D6]/10 transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Por validar</p>
-                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                        <i class="fa-solid fa-paper-plane text-blue-600 text-sm" aria-hidden="true"></i>
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider">Por validar</p>
+                    <div class="w-8 h-8 rounded-lg bg-[#5A97D6]/10 border border-[#5A97D6]/20 flex items-center justify-center">
+                        <i class="fa-solid fa-paper-plane text-[#255FA4] text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
-                <p id="m-reportados" class="text-blue-600 font-bold text-2xl">—</p>
-                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>Revisar</p>
+                <p id="m-reportados" class="text-[#255FA4] font-extrabold text-2xl">—</p>
+                <p class="text-[10px] text-[#6F88A1] mt-0.5 font-medium"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>Revisar reportes</p>
             </button>
+            
             <button type="button" data-goto="historial" data-estado="PAGADO" aria-label="Ver pagos pagados en el historial"
-                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2 hover:border-green-200 hover:ring-2 hover:ring-green-100 transition">
+                    class="stat-card w-full text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-2 hover:border-green-300 hover:ring-2 hover:ring-green-100 transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pagados</p>
-                    <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider">Pagados</p>
+                    <div class="w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center">
                         <i class="fa-solid fa-circle-check text-green-600 text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
-                <p id="m-pagados" class="text-green-600 font-bold text-2xl">—</p>
-                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
+                <p id="m-pagados" class="text-green-600 font-extrabold text-2xl">—</p>
+                <p class="text-[10px] text-[#6F88A1] mt-0.5 font-medium"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
             </button>
+            
             <button type="button" data-goto="historial" data-estado="VENCIDO" aria-label="Ver pagos vencidos en el historial"
-                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3 hover:border-red-200 hover:ring-2 hover:ring-red-100 transition">
+                    class="stat-card w-full text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-3 hover:border-red-300 hover:ring-2 hover:ring-red-100 transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Vencidos</p>
-                    <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider">Vencidos</p>
+                    <div class="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center">
                         <i class="fa-solid fa-triangle-exclamation text-red-600 text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
-                <p id="m-vencidos" class="text-red-600 font-bold text-2xl">—</p>
-                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
+                <p id="m-vencidos" class="text-red-600 font-extrabold text-2xl">—</p>
+                <p class="text-[10px] text-[#6F88A1] mt-0.5 font-medium"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
             </button>
+            
             <button type="button" data-goto="historial" data-estado="PENDIENTE" aria-label="Ver pagos pendientes en el historial"
-                    class="stat-card text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4 hover:border-amber-200 hover:ring-2 hover:ring-amber-100 transition">
+                    class="stat-card w-full text-left bg-white rounded-2xl p-4 border border-slate-100 shadow-sm anim-fade-in-up anim-delay-4 hover:border-[#FFE788] hover:ring-2 hover:ring-[#FFC533]/20 transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pendientes</p>
-                    <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                        <i class="fa-solid fa-clock text-amber-600 text-sm" aria-hidden="true"></i>
+                    <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-wider">Pendientes</p>
+                    <div class="w-8 h-8 rounded-lg bg-[#FFFBEB] border border-[#FFE788] flex items-center justify-center">
+                        <i class="fa-solid fa-clock text-[#FFC533] text-sm" aria-hidden="true"></i>
                     </div>
                 </div>
-                <p id="m-pendientes" class="text-amber-600 font-bold text-2xl">—</p>
-                <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
+                <p id="m-pendientes" class="text-[#13243E] font-extrabold text-2xl">—</p>
+                <p class="text-[10px] text-[#6F88A1] mt-0.5 font-medium"><i class="fa-solid fa-arrow-right text-[8px] mr-0.5"></i>En historial</p>
             </button>
         </div>
 
-        <!-- ── Tabs + Filtros ── -->
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-5 anim-fade-in-up anim-delay-2">
-            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
-                <!-- Tabs -->
-                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0" role="tablist" aria-label="Vistas de pagos">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+                <div class="flex gap-1.5 bg-[#F5F7F9] p-1.5 rounded-xl flex-shrink-0 border border-slate-100" role="tablist" aria-label="Vistas de pagos">
                     <button type="button" role="tab" title="Pagos reportados por inquilinos, pendientes de tu aprobación"
-                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all bg-white text-blue-700 shadow-sm"
+                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[#FFC533] text-[#13243E] shadow-sm"
                             data-tab="validar">
                         <i class="fa-solid fa-inbox mr-1" aria-hidden="true"></i> Por validar
                     </button>
                     <button type="button" role="tab" title="Registra un pago recibido en efectivo o fuera de la plataforma"
-                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-bold transition-all text-[#6F88A1] hover:text-[#13243E] hover:bg-slate-200/50"
                             data-tab="registrar">
                         <i class="fa-solid fa-hand-holding-dollar mr-1" aria-hidden="true"></i> Registrar
                     </button>
                     <button type="button" role="tab" title="Todos los pagos ya confirmados de tus propiedades"
-                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-semibold transition-all text-slate-500 hover:text-slate-700"
+                            class="tab-pagos-arr px-4 py-2 rounded-lg text-xs font-bold transition-all text-[#6F88A1] hover:text-[#13243E] hover:bg-slate-200/50"
                             data-tab="historial">
                         <i class="fa-solid fa-clock-rotate-left mr-1" aria-hidden="true"></i> Historial
                     </button>
                 </div>
 
-                <!-- Filtros (solo para historial) -->
-                <div id="filtros-historial" class="flex flex-1 gap-2">
+                <div id="filtros-historial" class="flex flex-1 gap-3">
                     <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#6F88A1] text-sm" aria-hidden="true"></i>
                         <input id="f-buscar" type="text" placeholder="Buscar inquilino o propiedad…" aria-label="Buscar por inquilino o propiedad"
-                               class="input-brand w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
+                               class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] outline-none transition-all font-medium" />
                     </div>
-                    <select id="f-estado" aria-label="Filtrar por estado de pago" class="input-brand px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                    <select id="f-estado" aria-label="Filtrar por estado de pago"
+                            class="px-4 py-2.5 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-bold outline-none transition-all">
                         <option value="">Todos</option>
                         <option value="PAGADO">Pagados</option>
                         <option value="PENDIENTE">Pendientes</option>
@@ -135,25 +131,15 @@
             </div>
         </div>
 
-        <!-- Hint que explica las pestañas de un vistazo -->
-        <div class="flex items-start gap-2 text-[11px] text-slate-500 mb-4 px-1 anim-fade-in-up anim-delay-2">
-            <i class="fa-solid fa-circle-info text-blue-400 mt-0.5" aria-hidden="true"></i>
-            <p><strong class="text-slate-600">Por validar</strong>: pagos que tus inquilinos reportaron y esperan tu aprobación · <strong class="text-slate-600">Registrar</strong>: anota un pago en efectivo o fuera de la app · <strong class="text-slate-600">Historial</strong>: todos los pagos confirmados.</p>
-        </div>
-
-        <!-- ── Contenido dinámico de la tab activa ── -->
         <div id="tab-content" class="anim-fade-in-up anim-delay-3" role="status" aria-label="Cargando pagos">
-            <!-- Skeleton de carga -->
             <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse space-y-3">
-                <div class="h-4 bg-slate-200 rounded w-1/3"></div>
-                <div class="h-24 bg-slate-100 rounded-xl"></div>
-                <div class="h-24 bg-slate-100 rounded-xl"></div>
+                <div class="h-4 bg-[#F5F7F9] rounded w-1/3"></div>
+                <div class="h-24 bg-[#F5F7F9] rounded-xl"></div>
+                <div class="h-24 bg-[#F5F7F9] rounded-xl"></div>
             </div>
         </div>
     </div>
-    <!-- /page-template -->
 
-    <!-- Scripts -->
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/components/layout.js"></script>
@@ -185,7 +171,6 @@
         }
     })();
 
-    // Reemplaza el esqueleto por un mensaje de error con opción de reintentar.
     function mostrarErrorCarga(contenedorId) {
         const loader = document.getElementById('initial-loader');
         if (loader) loader.remove();
@@ -196,10 +181,10 @@
                 <div class="w-14 h-14 mx-auto rounded-full bg-red-50 flex items-center justify-center mb-3">
                     <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl" aria-hidden="true"></i>
                 </div>
-                <p class="text-slate-800 font-semibold mb-1">No pudimos cargar la página</p>
-                <p class="text-slate-400 text-sm mb-4">Revisa tu conexión e inténtalo de nuevo.</p>
+                <p class="text-[#13243E] font-bold mb-1">No pudimos cargar la página</p>
+                <p class="text-[#6F88A1] text-sm mb-5">Revisa tu conexión e inténtalo de nuevo.</p>
                 <button type="button" onclick="location.reload()"
-                        class="px-4 py-2 rounded-xl bg-[#0f2557] text-white text-sm font-semibold hover:bg-[#15346f] transition">
+                        class="px-6 py-2.5 rounded-xl bg-[#FFC533] text-[#13243E] text-sm font-extrabold hover:bg-[#FFD44A] shadow-sm shadow-[#FFC533]/30 transition">
                     Reintentar
                 </button>
             </div>`;

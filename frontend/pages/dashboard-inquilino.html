@@ -17,244 +17,239 @@
     <style>
         /* transiciones extra para el banner de bienvenida */
         .hero-banner {
-            background: linear-gradient(135deg, #0f2557 0%, #1e3a8a 100%);
+            background: #13243E;
+            position: relative;
+            overflow: hidden;
             transition: all 0.3s ease;
         }
         .hero-banner:hover {
             transform: scale(1.01);
-            box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 20px 25px -12px rgba(19, 36, 62, 0.4);
         }
         .btn-glow {
             transition: all 0.2s ease;
         }
         .btn-glow:hover {
-            box-shadow: 0 0 15px rgba(59,130,246,0.6);
+            box-shadow: 0 0 15px rgba(255, 197, 51, 0.4);
             transform: translateY(-2px);
         }
     </style>
 </head>
 
-<body class="font-sans antialiased bg-slate-50">
+<body class="font-sans antialiased bg-[#F5F7F9]">
 
     <div id="initial-loader"
-         class="fixed inset-0 bg-[#0f2557] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
-        <div class="w-14 h-14 border-4 border-blue-300/30 border-t-white rounded-full animate-spin mb-4"></div>
-        <p class="text-blue-200 text-sm font-medium">Cargando tu información…</p>
+         class="fixed inset-0 bg-[#FFC533] flex flex-col items-center justify-center z-50 transition-opacity duration-300">
+        <div class="w-14 h-14 border-4 border-[#13243E]/10 border-t-[#13243E] rounded-full animate-spin mb-4"></div>
+        <p class="text-[#13243E] text-sm font-semibold tracking-wide">Cargando tu información…</p>
     </div>
 
     <div id="page-template" class="hidden">
 
-        <!-- Cabecera -->
         <div class="mb-6 anim-fade-in-up">
-            <h3 class="text-slate-900 font-bold text-xl" id="welcome-msg">Bienvenido</h3>
-            <p class="text-slate-500 text-sm mt-0.5" id="subheader-msg">Revisa el estado de tus contratos y pagos.</p>
+            <h3 class="text-[#13243E] font-extrabold text-xl" id="welcome-msg">Bienvenido</h3>
+            <p class="text-[#6F88A1] text-sm mt-0.5 font-medium" id="subheader-msg">Revisa el estado de tus contratos y pagos.</p>
         </div>
 
-        <!-- ========== CARRUSEL DE CONTRATOS ACTIVOS (o BANNER NUEVO USUARIO) ========== -->
-        <div class="relative mb-6" id="carousel-wrapper">
-            <div id="carousel-container" class="rounded-2xl overflow-hidden shadow-xl shadow-blue-900/20">
-                <!-- Aquí se inyectará dinámicamente el banner del contrato activo o el banner de búsqueda -->
-                <div class="bg-gradient-to-r from-[#0f2557] to-[#1d4ed8] p-5 text-white">
-                    <!-- Indicador de posición (se oculta si no hay contratos) -->
-                    <div id="carousel-nav-header" class="flex justify-between items-center mb-3">
-                        <p class="text-blue-200/70 text-xs font-semibold uppercase tracking-wider">
-                            Contrato activo <span id="carousel-index">1</span> de <span id="carousel-total">0</span>
+        <div class="relative mb-8" id="carousel-wrapper">
+            <div id="carousel-container" class="rounded-2xl overflow-hidden shadow-xl shadow-[#13243E]/10 border border-slate-800">
+                <div class="bg-[#13243E] p-6 text-white relative">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-[#FFC533]/15 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div id="carousel-nav-header" class="flex justify-between items-center mb-4 relative z-10">
+                        <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest">
+                            Contrato activo <span id="carousel-index" class="text-white">1</span> de <span id="carousel-total" class="text-white">0</span>
                         </p>
                         <div class="flex gap-2">
-                            <button id="carousel-prev" class="p-1 rounded-full bg-white/20 hover:bg-white/30 transition disabled:opacity-40" aria-label="Anterior">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <button id="carousel-prev" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-40" aria-label="Anterior">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                                 </svg>
                             </button>
-                            <button id="carousel-next" class="p-1 rounded-full bg-white/20 hover:bg-white/30 transition disabled:opacity-40" aria-label="Siguiente">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <button id="carousel-next" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-40" aria-label="Siguiente">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Contenido dinámico del carrusel / banner nuevo usuario -->
-                    <div id="carousel-content" class="transition-all">
-                        <!-- Se llenará con JS (contratos activos) o se reemplazará por banner de búsqueda -->
+                    <div id="carousel-content" class="transition-all relative z-10">
                         <div class="flex items-start justify-between gap-4">
                             <div>
-                                <p id="carousel-propiedad" class="font-bold text-lg leading-tight">Cargando…</p>
-                                <p id="carousel-direccion" class="text-blue-200/70 text-sm mt-1">—</p>
-                                <p id="carousel-fechas" class="text-blue-200/70 text-xs mt-2">—</p>
+                                <p id="carousel-propiedad" class="font-extrabold text-xl leading-tight text-white">Cargando…</p>
+                                <p id="carousel-direccion" class="text-[#6F88A1] font-medium text-sm mt-1">—</p>
+                                <p id="carousel-fechas" class="text-[#6F88A1] font-semibold text-xs mt-2.5 flex items-center gap-1.5"><svg class="w-3.5 h-3.5 text-[#FFC533]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> —</p>
                             </div>
-                            <div class="text-right flex-shrink-0">
-                                <p class="text-blue-200/70 text-xs mb-0.5">Renta mensual</p>
-                                <p id="carousel-monto" class="font-extrabold text-2xl">—</p>
+                            <div class="text-right flex-shrink-0 bg-white/5 border border-white/10 p-3 rounded-xl">
+                                <p class="text-[#6F88A1] text-[9px] uppercase font-bold tracking-widest mb-1">Renta mensual</p>
+                                <p id="carousel-monto" class="font-extrabold text-2xl text-[#FFC533]">—</p>
                             </div>
                         </div>
 
-                        <!-- Barra de progreso del contrato -->
-                        <div class="mt-4">
-                            <div class="flex justify-between text-xs text-blue-200/60 mb-1.5">
+                        <div class="mt-6 pt-5 border-t border-white/10">
+                            <div class="flex justify-between text-[10px] text-[#6F88A1] font-bold uppercase tracking-wider mb-2">
                                 <span>Progreso del contrato</span>
-                                <span id="carousel-progreso-pct">0%</span>
+                                <span id="carousel-progreso-pct" class="text-white">0%</span>
                             </div>
-                            <div class="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                                <div id="carousel-barra" class="h-full bg-blue-300 rounded-full transition-all duration-700" style="width:0%"></div>
+                            <div class="h-1.5 bg-white/10 rounded-full overflow-hidden shadow-inner">
+                                <div id="carousel-barra" class="h-full bg-[#FFC533] rounded-full transition-all duration-700 ease-out" style="width:0%"></div>
                             </div>
                         </div>
 
-                        <!-- Semáforo individual del contrato -->
-                        <div class="mt-4 pt-3 border-t border-white/20 flex items-center justify-between">
+                        <div class="mt-5 flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <span id="carousel-sem-dot" class="w-2.5 h-2.5 rounded-full bg-green-400"></span>
-                                <span id="carousel-sem-label" class="text-xs font-semibold uppercase tracking-wide">Excelente</span>
+                                <span id="carousel-sem-dot" class="w-2.5 h-2.5 rounded-full bg-green-400 shadow-sm shadow-green-400/50"></span>
+                                <span id="carousel-sem-label" class="text-[10px] font-extrabold uppercase tracking-widest text-white">Excelente</span>
                             </div>
-                            <div class="flex gap-3 text-xs">
-                                <div><span class="text-blue-200/60">Pagados:</span> <span id="carousel-pagados" class="font-semibold">0</span></div>
-                                <div><span class="text-blue-200/60">Vencidos:</span> <span id="carousel-vencidos" class="font-semibold">0</span></div>
-                                <div><span class="text-blue-200/60">Cumpl.:</span> <span id="carousel-cumplimiento" class="font-semibold">0%</span></div>
+                            <div class="flex gap-4 text-xs">
+                                <div><span class="text-[#6F88A1] font-bold uppercase text-[9px] tracking-wider">Pagados:</span> <span id="carousel-pagados" class="font-extrabold text-white ml-1">0</span></div>
+                                <div><span class="text-[#6F88A1] font-bold uppercase text-[9px] tracking-wider">Vencidos:</span> <span id="carousel-vencidos" class="font-extrabold text-white ml-1">0</span></div>
+                                <div><span class="text-[#6F88A1] font-bold uppercase text-[9px] tracking-wider">Cumpl.:</span> <span id="carousel-cumplimiento" class="font-extrabold text-[#FFC533] ml-1">0%</span></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Indicadores de página (dots) -->
-                    <div id="carousel-dots" class="flex justify-center gap-1.5 mt-4"></div>
+                    <div id="carousel-dots" class="flex justify-center gap-1.5 mt-5 relative z-10"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Tarjetas de resumen general (propiedades, renta total, pendientes, vencidos) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-1">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Propiedades</p>
-                <p id="total-propiedades" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center anim-fade-in-up anim-delay-1">
+                <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest mb-1.5">Propiedades</p>
+                <p id="total-propiedades" class="text-[#13243E] font-extrabold text-2xl">—</p>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-2">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Renta total mensual</p>
-                <p id="renta-total" class="text-slate-900 font-bold text-2xl mt-1">—</p>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center anim-fade-in-up anim-delay-2">
+                <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest mb-1.5">Renta total mensual</p>
+                <p id="renta-total" class="text-[#255FA4] font-extrabold text-2xl">—</p>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-3">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pagos pendientes</p>
-                <p id="total-pendientes" class="text-yellow-600 font-bold text-2xl mt-1">—</p>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center anim-fade-in-up anim-delay-3">
+                <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest mb-1.5">Pagos pendientes</p>
+                <p id="total-pendientes" class="text-[#FFC533] font-extrabold text-2xl drop-shadow-sm">—</p>
             </div>
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center anim-fade-in-up anim-delay-4">
-                <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">Pagos vencidos</p>
-                <p id="total-vencidos" class="text-red-600 font-bold text-2xl mt-1">—</p>
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-center anim-fade-in-up anim-delay-4">
+                <p class="text-[#6F88A1] text-[10px] font-bold uppercase tracking-widest mb-1.5">Pagos vencidos</p>
+                <p id="total-vencidos" class="text-red-600 font-extrabold text-2xl">—</p>
             </div>
         </div>
 
-        <!-- Semáforo global de confianza -->
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-            <div id="sem-cab" class="bg-slate-100 border-b border-slate-200 px-5 py-3 flex items-center gap-3">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-8 anim-fade-in-up anim-delay-2">
+            <div id="sem-cab" class="bg-[#F5F7F9] border-b border-slate-100 px-5 py-3 flex items-center gap-3">
                 <span id="sem-dot" class="w-3 h-3 rounded-full bg-slate-400"></span>
-                <span id="sem-titulo" class="text-slate-700 text-xs font-bold uppercase tracking-wider">Confianza global</span>
+                <span id="sem-titulo" class="text-[#13243E] text-[10px] font-bold uppercase tracking-widest">Confianza global</span>
             </div>
-            <div class="p-5">
-                <p id="sem-label" class="text-slate-900 font-extrabold text-2xl">Cargando…</p>
-                <p id="sem-desc" class="text-slate-500 text-xs mt-1">Análisis de tus pagos en todos los contratos.</p>
-                <div class="grid grid-cols-3 gap-2 mt-4 text-center">
-                    <div class="rounded-xl bg-slate-50 py-2">
-                        <p id="sem-cumpl" class="text-slate-800 font-bold text-base">—</p>
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Cumplimiento</p>
+            <div class="p-6">
+                <p id="sem-label" class="text-[#13243E] font-extrabold text-2xl uppercase tracking-wider">Cargando…</p>
+                <p id="sem-desc" class="text-[#6F88A1] text-sm mt-1 font-medium">Análisis de tus pagos en todos los contratos.</p>
+                <div class="grid grid-cols-3 gap-3 mt-6 text-center">
+                    <div class="rounded-xl bg-[#F5F7F9] border border-slate-100 py-3.5">
+                        <p id="sem-cumpl" class="text-[#13243E] font-extrabold text-lg">—</p>
+                        <p class="text-[#6F88A1] text-[9px] uppercase font-bold tracking-widest mt-1">Cumplimiento</p>
                     </div>
-                    <div class="rounded-xl bg-slate-50 py-2">
-                        <p id="sem-pagados" class="text-green-600 font-bold text-base">—</p>
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Pagados</p>
+                    <div class="rounded-xl bg-green-50 border border-green-100 py-3.5">
+                        <p id="sem-pagados" class="text-green-700 font-extrabold text-lg">—</p>
+                        <p class="text-green-600/70 text-[9px] uppercase font-bold tracking-widest mt-1">Pagados</p>
                     </div>
-                    <div class="rounded-xl bg-slate-50 py-2">
-                        <p id="sem-vencidos" class="text-red-600 font-bold text-base">—</p>
-                        <p class="text-slate-400 text-[10px] uppercase font-semibold">Vencidos</p>
+                    <div class="rounded-xl bg-red-50 border border-red-100 py-3.5">
+                        <p id="sem-vencidos" class="text-red-700 font-extrabold text-lg">—</p>
+                        <p class="text-red-600/70 text-[9px] uppercase font-bold tracking-widest mt-1">Vencidos</p>
                     </div>
                 </div>
-                <p class="text-slate-400 text-xs mt-4 italic">Indicador ponderado por cantidad de cuotas. Mantenerlo en verde mejora tu reputación.</p>
+                <p class="text-[#6F88A1] text-[11px] font-semibold mt-4 bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-start gap-2">
+                    <svg class="w-4 h-4 text-[#FFC533] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Indicador ponderado por cantidad de cuotas. Mantenerlo en "Excelente" mejora tu reputación.
+                </p>
             </div>
         </div>
 
-        <!-- Lista de todas las propiedades arrendadas (para visión rápida) -->
-        <div class="mb-6">
-            <h4 class="text-slate-800 font-semibold text-sm mb-3 flex items-center gap-2">
-                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+        <div class="mb-8 anim-fade-in-up anim-delay-3">
+            <h4 class="text-[#13243E] font-extrabold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-[#FFC533]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
                 Todas mis rentas
             </h4>
-            <div id="lista-contratos" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Aquí se inyectarán las tarjetas de cada contrato activo -->
-                <div class="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-                    <div class="h-4 bg-slate-200 rounded w-2/3 mb-3"></div>
-                    <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
-                    <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+            <div id="lista-contratos" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="bg-white rounded-2xl border border-slate-100 p-6 animate-pulse shadow-sm">
+                    <div class="h-4 bg-[#F5F7F9] rounded w-2/3 mb-3"></div>
+                    <div class="h-3 bg-[#F5F7F9] rounded w-1/2 mb-4"></div>
+                    <div class="h-10 bg-[#F5F7F9] rounded-xl w-full"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Desglose de pagos por propiedad (acordeón) -->
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
-            <button id="btn-toggle-pagos" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                    <span class="text-slate-800 font-semibold text-sm">Desglose de pagos por rentas</span>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-8 anim-fade-in-up anim-delay-4">
+            <button id="btn-toggle-pagos" class="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-[#F5F7F9] transition-colors focus:outline-none">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-[#5A97D6]/10 flex items-center justify-center border border-[#5A97D6]/20">
+                        <svg class="w-4 h-4 text-[#255FA4]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                    </div>
+                    <span class="text-[#13243E] font-extrabold text-sm uppercase tracking-wider">Desglose de pagos por rentas</span>
                 </div>
-                <svg id="toggle-icon" class="w-5 h-5 text-slate-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <svg id="toggle-icon" class="w-5 h-5 text-[#6F88A1] transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
-            <div id="detalle-pagos" class="hidden border-t border-slate-100">
-                <div class="p-4 space-y-4" id="detalle-pagos-contenido"></div>
+            <div id="detalle-pagos" class="hidden border-t border-slate-100 bg-[#F5F7F9]/30">
+                <div class="p-6 space-y-5" id="detalle-pagos-contenido"></div>
             </div>
         </div>
 
-        <!-- Próximos pagos (global) -->
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h4 class="text-slate-800 font-semibold text-sm">Próximos pagos (todos los contratos)</h4>
-                <a href="mis-pagos.html" class="text-blue-600 text-xs font-medium hover:underline">Ver historial completo</a>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-8 anim-fade-in-up anim-delay-5">
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-[#F5F7F9]">
+                <h4 class="text-[#13243E] font-extrabold text-sm uppercase tracking-wider">Próximos pagos</h4>
+                <a href="mis-pagos.html" class="text-[#255FA4] text-xs font-bold hover:underline">Ver calendario <span aria-hidden="true">&rarr;</span></a>
             </div>
-            <div id="proximos-pagos">
-                <div class="flex items-center justify-center py-10">
+            <div id="proximos-pagos" class="divide-y divide-slate-100">
+                <div class="flex items-center justify-center py-12">
                     <div class="text-center">
-                        <div class="w-8 h-8 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
-                        <p class="text-slate-400 text-xs">Cargando pagos…</p>
+                        <div class="w-10 h-10 border-4 border-slate-100 border-t-[#FFC533] rounded-full animate-spin mx-auto mb-3"></div>
+                        <p class="text-[#6F88A1] text-xs font-bold uppercase tracking-widest">Cargando pagos…</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Acciones rápidas (3 botones, incluido BUSCAR PROPIEDADES) -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
-            <a href="buscar-propiedades.html"
-               class="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 group border-0 text-white transform hover:-translate-y-1">
-                <div class="w-10 h-10 rounded-xl bg-white/20 group-hover:bg-white/30 transition-colors flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 anim-fade-in-up anim-delay-5">
+            <a href="buscar-propiedad.html"
+               class="flex items-center gap-4 p-5 bg-[#FFC533] rounded-2xl shadow-md shadow-[#FFC533]/20 hover:shadow-lg hover:bg-[#FFD44A] transition-all duration-300 group border border-[#FFE788] transform hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-xl bg-white/40 group-hover:bg-white/60 transition-colors flex items-center justify-center flex-shrink-0 border border-white/50">
+                    <svg class="w-6 h-6 text-[#13243E]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
                 <div>
-                    <p class="text-white text-sm font-bold">🔍 Buscar propiedades</p>
-                    <p class="text-blue-100 text-xs">Encuentra tu próximo hogar</p>
+                    <p class="text-[#13243E] text-sm font-extrabold uppercase tracking-wide">Buscar propiedades</p>
+                    <p class="text-[#13243E]/80 text-[11px] font-bold mt-0.5">Encuentra tu próximo hogar</p>
                 </div>
             </a>
+
             <a href="mis-incidencias.html"
-               class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 hover:border-orange-200 hover:bg-orange-50/40 transition-all duration-200 shadow-sm group">
-                <div class="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 transition-colors flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+               class="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-100 hover:border-[#FFE788] hover:bg-[#FFFBEB] transition-all duration-200 shadow-sm group">
+                <div class="w-12 h-12 rounded-xl bg-[#FFFBEB] border border-[#FFE788] group-hover:bg-[#FFC533]/20 transition-colors flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-[#13243E]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
                 </div>
                 <div>
-                    <p class="text-slate-800 text-sm font-semibold">Reportar incidencia</p>
-                    <p class="text-slate-400 text-xs">Envía un reporte</p>
+                    <p class="text-[#13243E] text-sm font-extrabold uppercase tracking-wide">Reportar incidencia</p>
+                    <p class="text-[#6F88A1] text-[11px] font-bold mt-0.5">Manda un aviso al dueño</p>
                 </div>
             </a>
+
             <a href="contratos-inquilinos.html"
-               class="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/40 transition-all duration-200 shadow-sm group">
-                <div class="w-10 h-10 rounded-xl bg-blue-100 group-hover:bg-blue-200 transition-colors flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+               class="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-100 hover:border-[#5A97D6]/30 hover:bg-[#5A97D6]/5 transition-all duration-200 shadow-sm group">
+                <div class="w-12 h-12 rounded-xl bg-[#5A97D6]/10 border border-[#5A97D6]/20 group-hover:bg-[#5A97D6]/20 transition-colors flex items-center justify-center flex-shrink-0">
+                    <svg class="w-6 h-6 text-[#255FA4]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 </div>
                 <div>
-                    <p class="text-slate-800 text-sm font-semibold">Ver todos mis contratos</p>
-                    <p class="text-slate-400 text-xs">Detalles y fechas</p>
+                    <p class="text-[#13243E] text-sm font-extrabold uppercase tracking-wide">Mis contratos</p>
+                    <p class="text-[#6F88A1] text-[11px] font-bold mt-0.5">Historial y detalles</p>
                 </div>
             </a>
         </div>
@@ -489,15 +484,15 @@
 
             document.getElementById('carousel-propiedad').textContent = prop?.nombre || 'Sin nombre';
             document.getElementById('carousel-direccion').textContent = prop?.direccion || '';
-            document.getElementById('carousel-fechas').textContent = `${inicio.toLocaleDateString('es-MX')} — ${fin.toLocaleDateString('es-MX')}`;
+            document.getElementById('carousel-fechas').innerHTML = `<svg class="w-3.5 h-3.5 text-[#FFC533]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> ${inicio.toLocaleDateString('es-MX')} — ${fin.toLocaleDateString('es-MX')}`;
             document.getElementById('carousel-monto').textContent = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(ct.monto_renta);
             document.getElementById('carousel-progreso-pct').textContent = `${pct}%`;
             document.getElementById('carousel-barra').style.width = `${pct}%`;
 
             const semaforo = ct.stats.nivel;
-            const semColors = { VERDE: 'bg-green-400', AMARILLO: 'bg-yellow-400', ROJO: 'bg-red-400', NEUTRO: 'bg-gray-400' };
+            const semColors = { VERDE: 'bg-green-400 shadow-green-400/50', AMARILLO: 'bg-[#FFC533] shadow-[#FFC533]/50', ROJO: 'bg-red-400 shadow-red-400/50', NEUTRO: 'bg-slate-400 shadow-slate-400/50' };
             const semLabels = { VERDE: 'Excelente', AMARILLO: 'Regular', ROJO: 'En riesgo', NEUTRO: 'Sin historial' };
-            document.getElementById('carousel-sem-dot').className = `w-2.5 h-2.5 rounded-full ${semColors[semaforo] || 'bg-gray-400'}`;
+            document.getElementById('carousel-sem-dot').className = `w-2.5 h-2.5 rounded-full shadow-sm ${semColors[semaforo] || 'bg-slate-400'}`;
             document.getElementById('carousel-sem-label').textContent = semLabels[semaforo] || 'Sin datos';
             document.getElementById('carousel-pagados').textContent = ct.stats.pagados;
             document.getElementById('carousel-vencidos').textContent = ct.stats.vencidos;
@@ -519,14 +514,14 @@
             const desc = document.getElementById('sem-desc');
             const styles = {
                 VERDE:    { cab:'bg-green-50 border-green-200',  dot:'bg-green-500',  tit:'text-green-700',  label:'Excelente',  desc:'Tus pagos están al día en todos tus contratos.' },
-                AMARILLO: { cab:'bg-yellow-50 border-yellow-200', dot:'bg-yellow-500', tit:'text-yellow-700', label:'Regular',    desc:'Algún contrato presenta retrasos. Revisa los detalles.' },
+                AMARILLO: { cab:'bg-[#FFFBEB] border-[#FFE788]', dot:'bg-[#FFC533]', tit:'text-[#13243E]', label:'Regular',    desc:'Algún contrato presenta retrasos. Revisa los detalles.' },
                 ROJO:     { cab:'bg-red-50 border-red-200',     dot:'bg-red-500',     tit:'text-red-700',    label:'En riesgo',  desc:'Tienes pagos vencidos importantes. Regulariza tu situación.' },
-                NEUTRO:   { cab:'bg-slate-50 border-slate-200', dot:'bg-slate-400',   tit:'text-slate-600',  label:'Sin historial', desc:'Aún no hay pagos suficientes para calificar.' },
+                NEUTRO:   { cab:'bg-[#F5F7F9] border-slate-200', dot:'bg-slate-400',   tit:'text-[#13243E]',  label:'Sin historial', desc:'Aún no hay pagos suficientes para calificar.' },
             };
             const s = styles[nivel] || styles.NEUTRO;
-            cab.className = `${s.cab} border-b px-5 py-3 flex items-center gap-3`;
-            dot.className = `w-3 h-3 rounded-full ${s.dot} ${nivel !== 'NEUTRO' ? 'animate-pulse' : ''}`;
-            tit.className = `text-xs font-bold uppercase tracking-wider ${s.tit}`;
+            cab.className = `${s.cab} border-b px-6 py-4 flex items-center gap-3`;
+            dot.className = `w-3 h-3 rounded-full ${s.dot} ${nivel !== 'NEUTRO' ? 'animate-pulse shadow-sm' : ''}`;
+            tit.className = `text-[10px] font-extrabold uppercase tracking-widest ${s.tit}`;
             label.textContent = s.label;
             desc.textContent = s.desc;
             document.getElementById('sem-cumpl').textContent = cumplimiento != null ? `${cumplimiento}%` : '—';
@@ -537,39 +532,53 @@
         function renderListaContratos(contratos) {
             const container = document.getElementById('lista-contratos');
             if (!contratos.length) {
-                container.innerHTML = '<div class="col-span-full text-center p-6 bg-white rounded-2xl">No tienes contratos activos.</div>';
+                container.innerHTML = '<div class="col-span-full text-center p-8 bg-[#F5F7F9] border border-slate-200 rounded-2xl"><p class="text-[#13243E] font-bold">No tienes contratos activos.</p></div>';
                 return;
             }
             const fmtMoney = v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v);
             const fmtFecha = d => new Date(d).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
             const semaforoBadge = {
-                VERDE:    'bg-green-100 text-green-700 border-green-200',
-                AMARILLO: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-                ROJO:     'bg-red-100 text-red-700 border-red-200',
-                NEUTRO:   'bg-slate-100 text-slate-600 border-slate-200',
+                VERDE:    'bg-green-50 text-green-700 border-green-200',
+                AMARILLO: 'bg-[#FFFBEB] text-[#13243E] border-[#FFE788]',
+                ROJO:     'bg-red-50 text-red-700 border-red-200',
+                NEUTRO:   'bg-slate-100 text-[#6F88A1] border-slate-200',
             };
+            const dotColor = { VERDE: 'bg-green-500', AMARILLO: 'bg-[#FFC533]', ROJO: 'bg-red-500', NEUTRO: 'bg-slate-400' };
+            const dotLabel = { VERDE: 'Excelente', AMARILLO: 'Regular', ROJO: 'En riesgo', NEUTRO: 'Sin datos' };
+
             container.innerHTML = contratos.map(ct => {
                 const prop = ct.propiedades;
                 const nivel = ct.stats.nivel;
                 return `
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition p-4">
-                    <div class="flex justify-between items-start gap-2">
-                        <div>
-                            <p class="text-slate-900 font-bold text-sm">${esc(prop?.nombre || 'Sin nombre')}</p>
-                            <p class="text-slate-500 text-xs truncate">${esc(prop?.direccion || '')}</p>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-[#FFE788] transition-all duration-200 p-5 group">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="min-w-0">
+                            <p class="text-[#13243E] font-extrabold text-sm truncate">${esc(prop?.nombre || 'Sin nombre')}</p>
+                            <p class="text-[#6F88A1] text-xs font-medium truncate mt-0.5">${esc(prop?.direccion || '')}</p>
                         </div>
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${semaforoBadge[nivel]}">
-                            <span class="w-1.5 h-1.5 rounded-full ${nivel === 'VERDE' ? 'bg-green-500' : nivel === 'AMARILLO' ? 'bg-yellow-500' : nivel === 'ROJO' ? 'bg-red-500' : 'bg-slate-400'}"></span>
-                            ${nivel === 'VERDE' ? 'Excelente' : nivel === 'AMARILLO' ? 'Regular' : nivel === 'ROJO' ? 'En riesgo' : 'Sin datos'}
+                        <span class="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-widest border ${semaforoBadge[nivel]}">
+                            <span class="w-1.5 h-1.5 rounded-full ${dotColor[nivel]}"></span>
+                            ${dotLabel[nivel]}
                         </span>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
-                        <div><span class="text-slate-400">Renta:</span> <span class="font-semibold">${fmtMoney(ct.monto_renta)}</span></div>
-                        <div><span class="text-slate-400">Vencidos:</span> <span class="font-semibold ${ct.stats.vencidos > 0 ? 'text-red-600' : ''}">${ct.stats.vencidos}</span></div>
-                        <div class="col-span-2"><span class="text-slate-400">Contrato:</span> ${fmtFecha(ct.fecha_inicio)} → ${fmtFecha(ct.fecha_fin)}</div>
+                    <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-50 text-xs">
+                        <div>
+                            <span class="text-[#6F88A1] text-[9px] uppercase font-bold tracking-widest block mb-0.5">Renta</span>
+                            <span class="font-extrabold text-[#255FA4] text-sm">${fmtMoney(ct.monto_renta)}</span>
+                        </div>
+                        <div>
+                            <span class="text-[#6F88A1] text-[9px] uppercase font-bold tracking-widest block mb-0.5">Vencidos</span>
+                            <span class="font-extrabold text-sm ${ct.stats.vencidos > 0 ? 'text-red-600' : 'text-[#13243E]'}">${ct.stats.vencidos}</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-[#6F88A1] text-[9px] uppercase font-bold tracking-widest block mb-0.5">Vigencia del contrato</span>
+                            <span class="font-bold text-[#13243E]">${fmtFecha(ct.fecha_inicio)} → ${fmtFecha(ct.fecha_fin)}</span>
+                        </div>
                     </div>
-                    <div class="mt-3">
-                        <a href="contratos-inquilinos.html?contratoId=${ct.contrato_id}" class="text-blue-600 text-xs font-medium hover:underline">Ver detalle →</a>
+                    <div class="mt-4 text-center">
+                        <a href="contratos-inquilinos.html?contratoId=${ct.contrato_id}" class="inline-block w-full py-2 bg-[#F5F7F9] group-hover:bg-[#FFC533] text-[#13243E] text-xs font-extrabold rounded-lg transition-colors">
+                            Ver detalles <span aria-hidden="true">&rarr;</span>
+                        </a>
                     </div>
                 </div>`;
             }).join('');
@@ -578,30 +587,33 @@
         function renderDesglosePagos(contratos) {
             const container = document.getElementById('detalle-pagos-contenido');
             if (!contratos.length) {
-                container.innerHTML = '<p class="text-slate-400 text-sm">No hay contratos para mostrar.</p>';
+                container.innerHTML = '<p class="text-[#6F88A1] text-sm font-medium text-center py-4">No hay contratos para mostrar.</p>';
                 return;
             }
             const fmtMoney = v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v);
             container.innerHTML = contratos.map(ct => {
                 const prop = ct.propiedades;
                 return `
-                <div class="border-b border-slate-100 pb-3 last:border-0">
-                    <p class="font-semibold text-slate-800 text-sm">${esc(prop?.nombre || 'Propiedad')}</p>
-                    <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-center">
-                        <div class="rounded-lg bg-slate-50 p-2">
-                            <p class="text-slate-400">Pagados</p>
-                            <p class="font-bold text-green-600">${ct.stats.pagados}</p>
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                    <p class="font-extrabold text-[#13243E] text-sm mb-3">${esc(prop?.nombre || 'Propiedad')}</p>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="rounded-xl bg-green-50 border border-green-100 p-2.5">
+                            <p class="font-extrabold text-green-700 text-lg">${ct.stats.pagados}</p>
+                            <p class="text-green-600/70 text-[9px] uppercase font-bold tracking-widest mt-0.5">Pagados</p>
                         </div>
-                        <div class="rounded-lg bg-slate-50 p-2">
-                            <p class="text-slate-400">Pendientes</p>
-                            <p class="font-bold text-yellow-600">${ct.stats.pendientes}</p>
+                        <div class="rounded-xl bg-[#FFFBEB] border border-[#FFE788] p-2.5">
+                            <p class="font-extrabold text-[#13243E] text-lg">${ct.stats.pendientes}</p>
+                            <p class="text-[#13243E]/70 text-[9px] uppercase font-bold tracking-widest mt-0.5">Pend.</p>
                         </div>
-                        <div class="rounded-lg bg-slate-50 p-2">
-                            <p class="text-slate-400">Vencidos</p>
-                            <p class="font-bold text-red-600">${ct.stats.vencidos}</p>
+                        <div class="rounded-xl bg-red-50 border border-red-100 p-2.5">
+                            <p class="font-extrabold text-red-600 text-lg">${ct.stats.vencidos}</p>
+                            <p class="text-red-500/70 text-[9px] uppercase font-bold tracking-widest mt-0.5">Vencidos</p>
                         </div>
                     </div>
-                    <p class="text-[11px] text-slate-400 mt-1">Cumplimiento: ${ct.stats.cumplimiento != null ? ct.stats.cumplimiento + '%' : '—'}</p>
+                    <div class="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center text-xs">
+                        <span class="text-[#6F88A1] font-bold uppercase tracking-wider text-[10px]">Tasa de cumplimiento</span>
+                        <span class="font-extrabold text-[#13243E]">${ct.stats.cumplimiento != null ? ct.stats.cumplimiento + '%' : '—'}</span>
+                    </div>
                 </div>`;
             }).join('');
         }
@@ -624,7 +636,14 @@
             const proximos = todosPagos.slice(0, 5);
 
             if (!proximos.length) {
-                container.innerHTML = `<div class="py-8 text-center"><p class="text-slate-400 text-sm">No hay pagos pendientes ni vencidos. 🎉</p></div>`;
+                container.innerHTML = `
+                    <div class="py-12 text-center">
+                        <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3 border border-green-100">
+                            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <p class="text-[#13243E] font-bold text-sm">Todo al día</p>
+                        <p class="text-[#6F88A1] text-xs mt-1">No tienes pagos próximos pendientes. ¡Excelente!</p>
+                    </div>`;
                 return;
             }
 
@@ -634,29 +653,38 @@
                 const hoy = new Date();
                 const diasRest = Math.ceil((fecha - hoy) / 86400000);
                 const esVencido = p.estado === 'VENCIDO';
-                let badgeClass = 'bg-yellow-100 text-yellow-700';
-                let badgeText = `${diasRest}d`;
+
+                let badgeClass = 'bg-[#FFFBEB] text-[#13243E] border-[#FFE788]';
+                let badgeText = `${diasRest} días`;
+
                 if (esVencido) {
-                    badgeClass = 'bg-red-100 text-red-700';
+                    badgeClass = 'bg-red-50 text-red-700 border-red-200';
                     badgeText = 'Vencido';
                 } else if (diasRest <= 0) {
-                    badgeClass = 'bg-orange-100 text-orange-700';
-                    badgeText = 'Hoy';
-                } else if (diasRest <= 7) {
-                    badgeClass = 'bg-orange-100 text-orange-700';
+                    badgeClass = 'bg-[#FFC533] text-[#13243E] border-[#FFE788]';
+                    badgeText = 'Vence Hoy';
+                } else if (diasRest === 1) {
+                    badgeClass = 'bg-[#FFC533] text-[#13243E] border-[#FFE788]';
+                    badgeText = 'Mañana';
                 }
+
                 return `
-                <div class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${esVencido ? 'bg-red-100' : 'bg-yellow-50'}">
-                        <svg class="w-5 h-5 ${esVencido ? 'text-red-500' : 'text-yellow-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                <div class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${esVencido ? 'bg-red-50 border-red-100' : 'bg-[#FFFBEB] border-[#FFE788]'}">
+                        <svg class="w-5 h-5 ${esVencido ? 'text-red-600' : 'text-[#FFC533]'}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-slate-800 text-sm font-semibold">${fmtMoney(p.monto)}</p>
-                        <p class="text-slate-400 text-xs">${esc(p.propiedadNombre)} · Vence: ${fecha.toLocaleDateString('es-MX')}</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-[#13243E] font-extrabold text-sm">${fmtMoney(p.monto)}</p>
+                            <span class="text-[9px] font-extrabold px-2 py-0.5 rounded-md border uppercase tracking-wider flex-shrink-0 ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <p class="text-[#6F88A1] font-medium text-xs mt-0.5 truncate">${esc(p.propiedadNombre)} · ${fecha.toLocaleDateString('es-MX', { day:'2-digit', month:'short' })}</p>
                     </div>
-                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${badgeClass}">${badgeText}</span>
+                    <a href="mis-pagos.html?contratoId=${p.contratoId}" class="w-8 h-8 rounded-full bg-[#F5F7F9] hover:bg-[#FFC533] text-[#13243E] flex items-center justify-center transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </a>
                 </div>`;
             }).join('');
         }
@@ -670,23 +698,26 @@
             if (dotsDiv) dotsDiv.style.display = 'none';
 
             const container = document.getElementById('carousel-container');
-            // Reemplazar contenido con banner atractivo
+            // Reemplazar contenido con banner atractivo usando la paleta premium
             container.innerHTML = `
-                <div class="hero-banner rounded-2xl p-6 md:p-8 text-white text-center shadow-2xl">
-                    <div class="mb-4 inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                <div class="hero-banner rounded-2xl p-6 md:p-10 text-white text-center shadow-xl border border-slate-800">
+                    <div class="absolute -left-6 -top-6 w-40 h-40 bg-[#FFC533]/15 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="mb-5 inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 relative z-10 shadow-inner">
+                        <svg class="w-10 h-10 text-[#FFC533]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                         </svg>
                     </div>
-                    <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight">¿Aún no tienes una renta?</h2>
-                    <p class="text-blue-100 text-base md:text-lg mt-3 max-w-md mx-auto">Encuentra el hogar que se adapta a ti. Revisa nuestras opciones disponibles y comienza a rentar hoy mismo.</p>
-                    <a href="buscar-propiedad.html" class="btn-glow inline-flex items-center gap-2 mt-6 px-8 py-3 bg-white text-blue-900 font-bold rounded-xl shadow-lg hover:bg-blue-50 transition-all duration-300 text-lg">
+                    <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white relative z-10">¿Aún no tienes una renta?</h2>
+                    <p class="text-[#6F88A1] text-sm md:text-base mt-3 max-w-md mx-auto font-medium relative z-10 leading-relaxed">
+                        Encuentra el hogar que se adapta a ti. Revisa nuestras opciones disponibles y comienza a rentar hoy mismo de manera fácil y segura.
+                    </p>
+                    <a href="buscar-propiedad.html" class="btn-glow inline-flex items-center justify-center gap-2 mt-8 px-8 py-3.5 bg-[#FFC533] text-[#13243E] font-extrabold rounded-xl shadow-md shadow-[#FFC533]/20 hover:bg-[#FFD44A] transition-all duration-300 text-sm relative z-10">
                         Explorar propiedades a rentar
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                     </a>
-                    <p class="text-blue-200 text-xs mt-6">Miles de inmuebles en renta te esperan!</p>
+                    <p class="text-[#6F88A1] text-[10px] uppercase font-bold tracking-widest mt-6 relative z-10">Miles de inmuebles en renta te esperan</p>
                 </div>
             `;
 
@@ -700,9 +731,25 @@
             document.getElementById('total-pendientes').textContent = '0';
             document.getElementById('total-vencidos').textContent = '0';
             pintarSemaforoGlobal('NEUTRO', null, 0, 0);
-            document.getElementById('lista-contratos').innerHTML = '<div class="col-span-full text-center p-6 bg-white rounded-2xl">Aún no tienes contratos activos. ¡Anímate a buscar una propiedad!</div>';
-            document.getElementById('detalle-pagos-contenido').innerHTML = '<p class="text-slate-400 text-sm">Sin datos. Una vez que tengas un contrato, aquí verás el detalle de pagos.</p>';
-            document.getElementById('proximos-pagos').innerHTML = '<div class="py-8 text-center"><p class="text-slate-400 text-sm">No hay pagos registrados.</p></div>';
+
+            document.getElementById('lista-contratos').innerHTML = `
+                <div class="col-span-full text-center p-8 bg-[#F5F7F9] rounded-2xl border border-slate-200">
+                    <p class="text-[#13243E] font-bold text-sm">Aún no tienes contratos activos.</p>
+                    <p class="text-[#6F88A1] text-xs mt-1">¡Anímate a buscar una propiedad en el catálogo!</p>
+                </div>`;
+
+            document.getElementById('detalle-pagos-contenido').innerHTML = `
+                <div class="text-center p-6 bg-white rounded-xl">
+                    <p class="text-[#6F88A1] text-sm font-medium">Una vez que tengas un contrato, aquí verás el detalle de pagos.</p>
+                </div>`;
+
+            document.getElementById('proximos-pagos').innerHTML = `
+                <div class="py-12 text-center">
+                    <div class="w-12 h-12 rounded-full bg-[#F5F7F9] flex items-center justify-center mx-auto mb-3 border border-slate-200">
+                        <svg class="w-5 h-5 text-[#6F88A1]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <p class="text-[#13243E] font-bold text-sm">No hay pagos registrados</p>
+                </div>`;
         }
 
         function esc(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }

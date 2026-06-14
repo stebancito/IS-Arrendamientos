@@ -222,7 +222,7 @@ const DETALLE_CONTRATO = (() => {
         if (c.estado === 'TERMINADO' && c.fecha_terminacion) {
             _show('bloque-cancelacion');
             _set('d-fecha-terminacion',
-                `Fecha de terminación registrada: ${fmtFecha(c.fecha_terminacion)}`);
+                `Fecha registrada: ${fmtFecha(c.fecha_terminacion)}`);
             _set('d-motivo-cancel', c.motivo_terminacion || 'No especificado');
         }
 
@@ -288,13 +288,13 @@ const DETALLE_CONTRATO = (() => {
             case 'PENDIENTE':
                 html = `
                     <button id="btn-retirar-oferta"
-                            class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl
-                                   bg-orange-50 hover:bg-orange-100 text-orange-700
-                                   text-sm font-semibold transition border border-orange-100">
-                        <i class="fa-solid fa-ban w-4 text-center"></i>
+                            class="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl
+                                   bg-[#FFFBEB] hover:bg-[#FFC533]/20 text-[#13243E]
+                                   text-sm font-bold transition-colors border border-[#FFE788] shadow-sm">
+                        <i class="fa-solid fa-ban text-[#FFC533]"></i>
                         Retirar oferta de contrato
                     </button>
-                    <p class="text-slate-400 text-[11px] leading-relaxed mt-2">
+                    <p class="text-[#6F88A1] text-[11px] leading-relaxed mt-3 text-center">
                         Si retiras la oferta, el contrato pasará a estado "Cancelado" y el
                         inquilino ya no podrá aceptarla.
                     </p>`;
@@ -303,42 +303,41 @@ const DETALLE_CONTRATO = (() => {
             // ── Contrato activo: RN-08 aplica; solo acciones operativas ──
             case 'ACTIVO':
                 html = `
-                    <!-- Aviso RN-08: ningún control de edición de condiciones -->
-                    <div class="flex items-start gap-2 text-[11px] text-blue-800 bg-blue-50
-                                border border-blue-100 rounded-xl px-3 py-2.5 mb-3">
-                        <i class="fa-solid fa-lock mt-0.5 flex-shrink-0"></i>
-                        <span>
-                            <strong>RN-08:</strong> Las condiciones financieras de un contrato
+                    <div class="flex items-start gap-2.5 text-[11px] text-[#255FA4] bg-[#5A97D6]/10
+                                border border-[#5A97D6]/20 rounded-xl px-3.5 py-3 mb-4 font-medium">
+                        <i class="fa-solid fa-lock mt-0.5 flex-shrink-0 text-[#255FA4]"></i>
+                        <span class="leading-relaxed">
+                            <strong class="text-[#13243E]">RN-08:</strong> Las condiciones financieras de un contrato
                             activo <strong>no son modificables</strong>. Para cambiar monto o
                             fechas, termina el actual y crea uno nuevo.
                         </span>
                     </div>
- 
-                    <a href="pagos.html?contratoId=${esc(String(c.contrato_id))}"
-                       class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl
-                              bg-blue-50 hover:bg-blue-100 text-blue-700
-                              text-sm font-semibold transition border border-blue-100">
-                        <i class="fa-solid fa-money-bill-wave w-4 text-center"></i>
+
+                    <a href="pagos.html?contratoId=${esc(String(c.contrato_id))}&tab=registrar"
+                       class="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl
+                              bg-[#5A97D6]/10 hover:bg-[#5A97D6]/20 text-[#255FA4]
+                              text-sm font-bold transition-colors border border-[#5A97D6]/30 shadow-sm">
+                        <i class="fa-solid fa-money-bill-wave"></i>
                         Registrar pago recibido
                     </a>
- 
-                    <a href="pagos.html?contratoId=${esc(String(c.contrato_id))}&tab=calendario"
-                       class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl mt-2
-                              bg-green-50 hover:bg-green-100 text-green-700
-                              text-sm font-semibold transition border border-green-100">
-                        <i class="fa-solid fa-calendar-days w-4 text-center"></i>
-                        Ver calendario de pagos
+
+                    <a href="pagos.html?contratoId=${esc(String(c.contrato_id))}&tab=historial"
+                       class="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl mt-2
+                              bg-[#F5F7F9] hover:bg-slate-200 text-[#13243E]
+                              text-sm font-bold transition-colors border border-slate-200 shadow-sm">
+                        <i class="fa-solid fa-calendar-days text-[#6F88A1]"></i>
+                        Ver historial de pagos
                     </a>
- 
+
                     <button id="btn-terminar-activo"
-                            class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl mt-2
-                                   bg-red-50 hover:bg-red-100 text-red-700
-                                   text-sm font-semibold transition border border-red-100">
-                        <i class="fa-solid fa-file-circle-xmark w-4 text-center"></i>
+                            class="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl mt-4
+                                   bg-red-50 hover:bg-red-100 text-red-600
+                                   text-sm font-bold transition-colors border border-red-100 shadow-sm">
+                        <i class="fa-solid fa-file-circle-xmark"></i>
                         Terminar anticipadamente
                     </button>
- 
-                    <p class="text-slate-400 text-[11px] leading-relaxed mt-2">
+
+                    <p class="text-[#6F88A1] text-[11px] text-center leading-relaxed mt-3">
                         El historial de pagos y el contrato se conservarán íntegros (RN-09).
                     </p>`;
                 break;
@@ -346,14 +345,14 @@ const DETALLE_CONTRATO = (() => {
             // ── Contrato rechazado: opción de crear uno nuevo ──
             case 'RECHAZADO':
                 html = `
-                    <a href="nuevo-contrato.html?propiedadId=${esc(String(c.propiedades?.propiedad_id || ''))}"
-                       class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl
-                              bg-blue-600 hover:bg-blue-700 text-white
-                              text-sm font-semibold shadow-sm shadow-blue-600/25 transition">
-                        <i class="fa-solid fa-file-circle-plus w-4 text-center"></i>
-                        Crear nueva oferta de contrato
+                    <a href="nuevo-contrato.html?propiedad_id=${esc(String(c.propiedades?.propiedad_id || ''))}"
+                       class="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl
+                              bg-[#FFC533] hover:bg-[#FFD44A] text-[#13243E]
+                              text-sm font-extrabold shadow-sm shadow-[#FFC533]/30 transition-colors">
+                        <i class="fa-solid fa-file-circle-plus"></i>
+                        Crear nueva oferta
                     </a>
-                    <p class="text-slate-400 text-[11px] leading-relaxed mt-2">
+                    <p class="text-[#6F88A1] text-[11px] text-center leading-relaxed mt-3">
                         El inquilino rechazó la propuesta anterior. Puedes crear una nueva
                         oferta para la misma propiedad.
                     </p>`;
@@ -364,17 +363,17 @@ const DETALLE_CONTRATO = (() => {
             case 'TERMINADO':
             default:
                 html = `
-                    <div class="py-3 text-center">
-                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
-                            <i class="fa-solid fa-circle-check text-slate-400"></i>
+                    <div class="py-4 text-center">
+                        <div class="w-12 h-12 rounded-full bg-[#F5F7F9] border border-slate-100 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-check-double text-[#6F88A1]"></i>
                         </div>
-                        <p class="text-slate-500 text-xs">Este contrato ya no tiene acciones disponibles.</p>
+                        <p class="text-[#6F88A1] text-xs font-medium">Este contrato ya no tiene acciones disponibles.</p>
                     </div>
                     <a href="gestion-contratos.html"
-                       class="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl mt-1
-                              bg-slate-100 hover:bg-slate-200 text-slate-700
-                              text-sm font-semibold transition">
-                        <i class="fa-solid fa-arrow-left w-4 text-center"></i>
+                       class="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl mt-2
+                              bg-[#F5F7F9] hover:bg-slate-200 text-[#13243E]
+                              text-sm font-bold transition-colors">
+                        <i class="fa-solid fa-arrow-left"></i>
                         Volver a contratos
                     </a>`;
                 break;
@@ -416,20 +415,24 @@ const DETALLE_CONTRATO = (() => {
         const propNombre = esc(c.propiedades?.nombre || 'la propiedad');
         const inqNombre  = esc(c.inquilinos?.usuarios?.nombre_completo || 'el inquilino');
 
-        // Estilos dinámicos según tipo de acción
-        const colorHeader = esRetirar
-            ? 'from-orange-500 to-orange-600'
-            : 'from-red-600 to-red-700';
+        // Estilos dinámicos según tipo de acción integrados al Design System
+        const bgHeader = esRetirar
+            ? 'bg-[#FFC533] text-[#13243E]'
+            : 'bg-[#13243E] text-white';
+        const iconContainer = esRetirar
+            ? 'bg-white/40 border border-[#13243E]/10'
+            : 'bg-white/10 border border-white/20';
+        const textColorSub = esRetirar ? 'text-[#13243E]/70' : 'text-[#6F88A1]';
         const colorBtn    = esRetirar
-            ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-600/20'
-            : 'bg-red-600 hover:bg-red-700 shadow-red-600/20';
+            ? 'bg-[#13243E] hover:bg-slate-800 text-white shadow-slate-800/20'
+            : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20';
         const icono       = esRetirar ? 'fa-ban' : 'fa-file-circle-xmark';
         const titulo      = esRetirar
             ? 'Retirar oferta de contrato'
             : 'Terminar contrato anticipadamente';
         const descripcion = esRetirar
-            ? `¿Confirmas que deseas retirar la oferta para <strong>${propNombre}</strong>? El inquilino ya no podrá aceptarla.`
-            : `¿Confirmas la terminación anticipada del contrato de <strong>${inqNombre}</strong> en <strong>${propNombre}</strong>? El historial de pagos se conservará.`;
+            ? `¿Confirmas que deseas retirar la oferta para <strong class="text-[#13243E]">${propNombre}</strong>? El inquilino ya no podrá aceptarla.`
+            : `¿Confirmas la terminación anticipada del contrato de <strong class="text-[#13243E]">${inqNombre}</strong> en <strong class="text-[#13243E]">${propNombre}</strong>? El historial de pagos se conservará.`;
 
         // Fecha mínima de terminación: hoy + 7 días
         const hoy         = new Date();
@@ -460,14 +463,14 @@ const DETALLE_CONTRATO = (() => {
         // Bloque de fecha (solo para terminación anticipada, no para retirar)
         const campoFecha = !esRetirar ? `
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">
                     Fecha efectiva de terminación *
                 </label>
                 <input id="term-fecha" type="date"
                        min="${esc(minDateStr)}" max="${esc(maxDateStr)}" value="${esc(minDateStr)}"
-                       class="input-brand w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm" />
-                <p class="text-slate-400 text-xs mt-1.5">
-                    <i class="fa-solid fa-circle-info text-[10px] mr-1"></i>
+                       class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-medium outline-none transition-all" />
+                <p class="text-[#6F88A1] text-[10px] font-semibold mt-1.5 ml-1">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
                     Mínimo <strong>${esc(minDateHum)}</strong> (7 días de anticipación).
                 </p>
             </div>` : '';
@@ -475,89 +478,79 @@ const DETALLE_CONTRATO = (() => {
         const modalHTML = `
         <div id="modal-terminacion-contrato"
              class="fixed inset-0 z-50 flex items-end sm:items-center justify-center
-                    bg-black/50 backdrop-blur-sm p-0 sm:p-4 anim-fade-in-up">
+                    bg-[#13243E]/60 backdrop-blur-sm p-0 sm:p-4 anim-fade-in-up">
             <div class="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl
                         shadow-2xl overflow-hidden">
 
-                <!-- Cabecera del modal -->
-                <div class="px-5 py-4 bg-gradient-to-r ${colorHeader} text-white">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur
+                <div class="px-6 py-5 ${bgHeader} relative">
+                    ${!esRetirar ? '<div class="absolute -right-6 -top-6 w-24 h-24 bg-[#FFC533]/15 rounded-full blur-2xl pointer-events-none"></div>' : ''}
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-12 h-12 rounded-xl ${iconContainer}
                                     flex items-center justify-center flex-shrink-0">
-                            <i class="fa-solid ${icono} text-lg"></i>
+                            <i class="fa-solid ${icono} text-xl"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="font-bold text-base leading-tight">${esc(titulo)}</p>
-                            <p class="text-white/70 text-xs">
+                            <p class="font-extrabold text-base leading-tight">${esc(titulo)}</p>
+                            <p class="${textColorSub} text-[11px] font-bold uppercase tracking-widest mt-1">
                                 Folio #${String(c.contrato_id).padStart(6, '0')}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Cuerpo del modal -->
-                <div class="p-5">
+                <div class="p-6">
 
-                    <!-- Alerta de validación inline (hidden por defecto) -->
-                    <div id="term-alert" class="hidden mb-3"></div>
+                    <div id="term-alert" class="hidden mb-4"></div>
 
-                    <p class="text-slate-700 text-sm leading-relaxed mb-4">${descripcion}</p>
+                    <p class="text-[#6F88A1] text-sm font-medium leading-relaxed mb-5">${descripcion}</p>
 
-                    <div class="space-y-3">
+                    <div class="space-y-4">
 
-                        <!-- Motivo (select) -->
                         <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                            <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">
                                 Motivo *
                             </label>
                             <select id="term-motivo-select"
-                                    class="input-brand w-full px-3 py-2 rounded-xl
-                                           border border-slate-200 bg-slate-50 text-sm">
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-medium outline-none transition-all">
                                 <option value="">— Selecciona una razón —</option>
                                 ${motivosOpts}
                                 <option value="OTRO">Otro (especificar abajo)</option>
                             </select>
                         </div>
 
-                        <!-- Detalle libre -->
                         <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                            <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">
                                 Detalles adicionales
                             </label>
                             <textarea id="term-motivo-detalle" rows="2" maxlength="400"
                                       placeholder="Descripción complementaria (opcional)…"
-                                      class="input-brand w-full px-3 py-2 rounded-xl border
-                                             border-slate-200 bg-slate-50 text-sm resize-none">
-                            </textarea>
+                                      class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-medium outline-none transition-all resize-none"></textarea>
                         </div>
 
-                        <!-- Fecha de terminación (solo si NO es retirar oferta) -->
                         ${campoFecha}
 
                     </div>
 
-                    <!-- Aviso RN-09 -->
-                    <div class="mt-4 flex items-start gap-2 p-3 bg-amber-50 border
-                                border-amber-100 rounded-xl text-amber-800 text-xs leading-relaxed">
-                        <i class="fa-solid fa-triangle-exclamation flex-shrink-0 mt-0.5"></i>
+                    <div class="mt-5 flex items-start gap-3 p-4 bg-[#FFFBEB] border
+                                border-[#FFE788] rounded-xl text-[#13243E]/80 text-[11px] leading-relaxed font-medium">
+                        <i class="fa-solid fa-circle-info flex-shrink-0 mt-0.5 text-[#FFC533]"></i>
                         <span>
-                            <strong>RN-09:</strong> El contrato y todos sus registros de pago
+                            <strong class="text-[#13243E]">RN-09:</strong> El contrato y todos sus registros de pago
                             <strong>se conservarán como historial</strong>. Solo cambiará el
                             estado a "Cancelado". Esta acción no se puede deshacer.
                         </span>
                     </div>
 
-                    <!-- Botones de acción -->
-                    <div class="flex gap-2 mt-5">
+                    <div class="flex gap-3 mt-6 pt-5 border-t border-slate-100">
                         <button type="button"
                                 onclick="document.getElementById('modal-terminacion-contrato').remove()"
-                                class="flex-1 px-4 py-2.5 rounded-xl text-slate-700
-                                       hover:bg-slate-100 text-sm font-semibold transition">
+                                class="flex-1 px-4 py-3 rounded-xl text-[#13243E] bg-[#F5F7F9]
+                                       hover:bg-slate-200 text-sm font-bold transition-colors">
                             No, volver
                         </button>
                         <button id="btn-confirm-terminacion" type="button"
-                                class="flex-1 px-4 py-2.5 rounded-xl ${colorBtn}
-                                       text-white text-sm font-semibold shadow-md transition">
+                                class="flex-1 px-4 py-3 rounded-xl ${colorBtn}
+                                       text-sm font-extrabold shadow-sm transition-colors">
                             ${esRetirar ? 'Sí, retirar oferta' : 'Sí, terminar contrato'}
                         </button>
                     </div>
@@ -664,7 +657,7 @@ const DETALLE_CONTRATO = (() => {
         }
 
         if (window.TOAST) {
-            TOAST.success('Contrato terminado. El historial se conserva íntegro (RN-09).');
+            TOAST.success('Contrato actualizado. El historial se conserva íntegro (RN-09).');
         }
     }
 
@@ -689,7 +682,7 @@ const DETALLE_CONTRATO = (() => {
             PENDIENTE  : 'Pendiente de aceptación por el inquilino',
             ACTIVO     : 'Contrato activo y en vigor',
             FINALIZADO : 'Contrato finalizado (término natural)',
-            TERMINADO  : 'Contrato terminado anticipadamente',
+            TERMINADO  : 'Contrato terminado o cancelado',
             RECHAZADO  : 'Contrato rechazado por el inquilino',
         };
         return LABELS[estado] || estado;
@@ -701,7 +694,7 @@ const DETALLE_CONTRATO = (() => {
      */
     function _alertaModal(box, msg) {
         if (!box) return;
-        box.className = 'mb-3 px-3 py-2 rounded-xl text-xs font-medium ' +
+        box.className = 'mb-4 px-4 py-3 rounded-xl text-xs font-bold ' +
                         'bg-red-50 border border-red-200 text-red-700';
         box.textContent = msg;
         box.classList.remove('hidden');
@@ -718,15 +711,15 @@ const DETALLE_CONTRATO = (() => {
         if (!main) return;
         main.innerHTML = `
             <div class="flex flex-col items-center justify-center py-20 text-center px-4">
-                <div class="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4 border border-red-100">
-                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-2xl"></i>
+                <div class="w-16 h-16 rounded-2xl bg-[#FFC533]/20 flex items-center justify-center mb-4 border border-[#FFE788]">
+                    <i class="fa-solid fa-triangle-exclamation text-[#13243E] text-3xl"></i>
                 </div>
-                <p class="text-slate-900 font-bold text-lg mb-1">Error al cargar el contrato</p>
-                <p class="text-slate-500 text-sm mb-6 max-w-sm">${esc(msg)}</p>
+                <p class="text-[#13243E] font-extrabold text-xl mb-2">Error al cargar el contrato</p>
+                <p class="text-[#6F88A1] text-sm mb-6 max-w-sm font-medium">${esc(msg)}</p>
                 <a href="gestion-contratos.html"
-                   class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
-                          bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
-                          shadow-md shadow-blue-600/25 transition">
+                   class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl
+                          bg-[#FFC533] hover:bg-[#FFD44A] text-[#13243E] text-sm font-extrabold
+                          shadow-sm shadow-[#FFC533]/30 transition-colors">
                     <i class="fa-solid fa-arrow-left"></i>
                     Volver a contratos
                 </a>
