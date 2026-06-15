@@ -743,8 +743,18 @@ const CONTRATOS_INQUILINO = (() => {
     // PDF: descargar contrato
     // ──────────────────────────────────────────────────────────────
     function _descargarPDF(c) {
-        // Pasar el arrendador para que aparezca en el documento
-        const detallado = { ...c, arrendador: c._arrendador };
+        // Pasar el arrendador y el inquilino (usuario actual) para que aparezcan en el documento
+        const detallado = { 
+            ...c, 
+            arrendador: c._arrendador,
+            inquilinos: {
+                usuarios: {
+                    nombre_completo: _usuario.nombre_completo,
+                    correo: _usuario.correo,
+                    telefono: _usuario.telefono
+                }
+            }
+        };
         PDF_CONTRATO.descargar(detallado);
     }
 

@@ -199,7 +199,9 @@ const PAGOS_ARRENDADOR = (() => {
             const inqNombre = p.contratos?.inquilinos?.usuarios?.nombre_completo || 'Inquilino';
             const propNombre = p.contratos?.propiedades?.nombre || 'Propiedad';
             const periodo = H.formatearPeriodo(p);
-            const reg = p.registros_pago?.[0]; 
+            
+            // Extracción segura soportando arreglo u objeto directo
+            const reg = Array.isArray(p.registros_pago) ? p.registros_pago[0] : p.registros_pago; 
             const metodo = reg ? reg.metodo_pago : 'N/D';
 
             html += `
@@ -237,10 +239,11 @@ const PAGOS_ARRENDADOR = (() => {
         });
     }
 
-    function _abrirModalValidar(pago) {
+   function _abrirModalValidar(pago) {
         if (pago.estado !== 'REPORTADO') return;
         
-        const reg = pago.registros_pago?.[0];
+        // Extracción segura soportando arreglo u objeto directo
+        const reg = Array.isArray(pago.registros_pago) ? pago.registros_pago[0] : pago.registros_pago;
         if (!reg) {
             if (window.TOAST) TOAST.error('No se encontró el reporte de pago en la base de datos.');
             return;
@@ -328,7 +331,9 @@ const PAGOS_ARRENDADOR = (() => {
         const btnAprobar = document.getElementById('btn-aprobar-pago');
         const btnRechazar = document.getElementById('btn-rechazar-pago');
         const alertBox = document.getElementById('validar-alert');
-        const reg = pago.registros_pago?.[0];
+        
+        // Extracción segura soportando arreglo u objeto directo
+        const reg = Array.isArray(pago.registros_pago) ? pago.registros_pago[0] : pago.registros_pago;
 
         AUTH.setLoading(aprobado ? btnAprobar : btnRechazar, true);
         if (aprobado) btnRechazar.disabled = true; else btnAprobar.disabled = true;
