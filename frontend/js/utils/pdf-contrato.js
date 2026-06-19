@@ -18,6 +18,18 @@
 //     inquilinos:  { usuarios: { nombre_completo, correo, telefono }, ... },
 //     arrendador:  { nombre_completo, correo, telefono }
 // }
+//
+// Cambios – feature/clausulas-personalizadas-contrato:
+//   - `c.beneficios` ahora llega como texto plano legible (string),
+//     ej: "Estacionamiento, Gimnasio, Agua, Internet" (incluye tanto
+//     beneficios del inmueble como servicios incluidos: agua, luz,
+//     internet, gas). Se imprime tal cual, ya no requiere mapeo de
+//     claves técnicas (BENEFICIOS_MAP queda como fallback legado por
+//     si algún contrato antiguo trae el formato anterior tipo array).
+//   - `c.observaciones` puede incluir cláusulas formateadas con guion
+//     ("- No subarrendar"), generadas por nuevo-contrato.js. Como ya
+//     vienen como texto con saltos de línea, se imprimen igual que
+//     cualquier observación; jsPDF respeta los saltos de línea.
 // ================================================================
 
 const PDF_CONTRATO = (() => {
@@ -29,12 +41,19 @@ const PDF_CONTRATO = (() => {
     const COLOR_MUTED      = '#64748b';
     const COLOR_DIVIDER    = '#e2e8f0';
 
+    // Fallback legado: por si algún contrato antiguo trae `beneficios`
+    // como array de claves técnicas en vez de texto legible.
     const BENEFICIOS_MAP = {
         estacionamiento: 'Estacionamiento privado',
         gimnasio: 'Acceso a gimnasio e instalaciones deportivas',
         area_social: 'Áreas sociales y de uso común',
         jardin: 'Zonas ajardinadas',
-        mascotas: 'Permiso explícito para tener mascotas'
+        mascotas: 'Permiso explícito para tener mascotas',
+        // Servicios incluidos (prefijo legado "svc:", por compatibilidad)
+        'svc:agua': 'Agua incluida',
+        'svc:luz': 'Luz incluida',
+        'svc:internet': 'Internet incluido',
+        'svc:gas': 'Gas incluido',
     };
 
     // ─── Helpers de formato ────────────────────────────────────
@@ -53,7 +72,6 @@ const PDF_CONTRATO = (() => {
     };
 
     const fmtMontoEnLetra = (v) => {
-        // Pequeño helper informativo (no formal). Para uso meramente visual.
         return fmtMoneda(v) + ' M.N.';
     };
 
@@ -68,6 +86,40 @@ const PDF_CONTRATO = (() => {
         }[t] || t;
     };
 
+    /**
+     * Construye el texto de beneficios/servicios listo para imprimir.
+     *
+     * Soporta dos formatos de `beneficios`:
+     *   1. String legible (formato actual): "Estacionamiento, Agua, Internet"
+     *      → se separa por comas y se imprime como lista con viñetas.
+     *   2. Array de claves técnicas (formato legado): ["estacionamiento", "svc:agua"]
+     *      → se mapea con BENEFICIOS_MAP antes de imprimir.
+     *
+     * Devuelve un string multilínea con viñetas, o '' si no hay datos.
+     */
+    function _construirTextoBeneficios(c, prop) {
+        const fuente = (prop && prop.beneficios) || c.beneficios;
+
+        if (!fuente) return '';
+
+        // Formato actual: string legible separado por comas
+        if (typeof fuente === 'string' && fuente.trim() !== '') {
+            return fuente
+                .split(',')
+                .map(item => item.trim())
+                .filter(Boolean)
+                .map(item => '• ' + item)
+                .join('\n');
+        }
+
+        // Formato legado: array de claves técnicas
+        if (Array.isArray(fuente) && fuente.length > 0) {
+            return fuente.map(b => '• ' + (BENEFICIOS_MAP[b] || b)).join('\n');
+        }
+
+        return '';
+    }
+
     // ─── Renderizar texto con auto-wrap y control de salto de página ────
     function _writeText(doc, text, x, y, opts = {}) {
         const maxWidth = opts.maxWidth || 170;
@@ -81,13 +133,11 @@ const PDF_CONTRATO = (() => {
 
         const lines = doc.splitTextToSize(text, maxWidth);
         doc.text(lines, x, y);
-        // Devolver la nueva Y luego de escribir
         return y + (lines.length * size * 0.4);
     }
 
     // ─── Función principal de generación ────────────────────────
     function generar(c) {
-        // jsPDF se expone como window.jspdf.jsPDF cuando se carga la UMD
         if (typeof window.jspdf === 'undefined') {
             throw new Error('jsPDF no está cargado. Incluye el script de jsPDF por CDN antes de invocar PDF_CONTRATO.');
         }
@@ -100,7 +150,6 @@ const PDF_CONTRATO = (() => {
         let y = 22;
 
         // ╔══════════════ ENCABEZADO ══════════════╗
-        // Banda azul superior
         doc.setFillColor(COLOR_PRIMARY);
         doc.rect(0, 0, pageW, 14, 'F');
         doc.setTextColor('#ffffff');
@@ -147,7 +196,6 @@ const PDF_CONTRATO = (() => {
         doc.text('I. DECLARACIONES DE LAS PARTES', marginX, y);
         y += 6;
 
-        // Bloque arrendador
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(COLOR_TEXT);
@@ -158,7 +206,6 @@ const PDF_CONTRATO = (() => {
         doc.text(`Correo:  ${arrend.correo || '—'}`,           marginX, y); y += 5;
         doc.text(`Teléfono: ${arrend.telefono || '—'}`,         marginX, y); y += 7;
 
-        // Bloque inquilino
         doc.setFont('helvetica', 'bold');
         doc.text('Arrendatario', marginX, y); y += 5;
         doc.setFont('helvetica', 'normal');
@@ -229,11 +276,10 @@ const PDF_CONTRATO = (() => {
             },
             {
                 titulo: 'OCTAVA. Conformidad',
-                texto:  `Las partes manifiestan que han leído, comprendido y aceptado el contenido del presente contrato, así como los beneficios y observaciones particulares que se detallan al pie del documento.`
+                texto:  `Las partes manifiestan que han leído, comprendido y aceptado el contenido del presente contrato, así como los beneficios, servicios y observaciones particulares que se detallan al pie del documento.`
             }
         ];
 
-        // Si nos quedamos sin espacio en la primera página, hacemos salto
         for (const cl of clausulas) {
             if (y > pageH - 50) {
                 doc.addPage();
@@ -252,17 +298,12 @@ const PDF_CONTRATO = (() => {
             y += 4;
         }
 
-        // ╔══════════════ BENEFICIOS / OBSERVACIONES ══════════════╗
-        
-        // 1. Preparar el texto de los beneficios dinámicamente
-        let textoBeneficios = '';
-        const arrBeneficios = prop.beneficios || c.beneficios; // Lee el array de la propiedad
-        if (Array.isArray(arrBeneficios) && arrBeneficios.length > 0) {
-            // Convierte el array ['estacionamiento', 'mascotas'] a una lista con viñetas
-            textoBeneficios = arrBeneficios.map(b => '• ' + (BENEFICIOS_MAP[b] || b)).join('\n');
-        } else if (typeof arrBeneficios === 'string' && arrBeneficios.trim() !== '') {
-            textoBeneficios = arrBeneficios; // Fallback de seguridad
-        }
+        // ╔══════════════ BENEFICIOS, SERVICIOS Y OBSERVACIONES ══════════════╗
+        // `c.beneficios` ahora trae texto legible combinando beneficios
+        // del inmueble + servicios incluidos (agua, luz, internet, gas),
+        // ej: "Estacionamiento, Gimnasio, Agua, Internet". Se separa por
+        // comas y se imprime como lista con viñetas, igual que antes.
+        const textoBeneficios = _construirTextoBeneficios(c, prop);
 
         if (textoBeneficios || c.observaciones) {
             if (y > pageH - 55) { doc.addPage(); y = 25; }
@@ -270,48 +311,49 @@ const PDF_CONTRATO = (() => {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
             doc.setTextColor(COLOR_PRIMARY);
-            doc.text('IV. BENEFICIOS Y OBSERVACIONES', marginX, y);
+            doc.text('IV. BENEFICIOS, SERVICIOS Y OBSERVACIONES', marginX, y);
             y += 6;
 
             if (textoBeneficios) {
+                if (y > pageH - 40) { doc.addPage(); y = 25; }
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
                 doc.setTextColor(COLOR_TEXT);
-                doc.text('Beneficios e instalaciones incluidas:', marginX, y);
+                doc.text('Beneficios y servicios incluidos:', marginX, y);
                 y += 5;
                 doc.setFont('helvetica', 'normal');
-                // jsPDF respeta automáticamente los saltos de línea (\n) del string mapeado
+                // jsPDF respeta automáticamente los saltos de línea (\n)
                 y = _writeText(doc, textoBeneficios, marginX, y, { maxWidth: pageW - marginX * 2, size: 10 });
-                y += 3;
+                y += 5;
             }
 
             if (c.observaciones) {
+                if (y > pageH - 40) { doc.addPage(); y = 25; }
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(10);
                 doc.setTextColor(COLOR_TEXT);
-                doc.text('Observaciones particulares:', marginX, y);
+                doc.text('Observaciones y cláusulas particulares:', marginX, y);
                 y += 5;
                 doc.setFont('helvetica', 'normal');
+                // Las observaciones pueden incluir cláusulas formateadas
+                // con guion ("- No subarrendar"), generadas por el
+                // formulario de Nuevo Contrato. jsPDF respeta los \n.
                 y = _writeText(doc, c.observaciones, marginX, y, { maxWidth: pageW - marginX * 2, size: 10 });
                 y += 3;
             }
         }
 
         // ╔══════════════ FIRMAS (simuladas) ══════════════╗
-        // Asegurar espacio suficiente
         if (y > pageH - 55) { doc.addPage(); y = 25; }
         y = Math.max(y + 10, pageH - 55);
 
         doc.setDrawColor(COLOR_TEXT);
         doc.setLineWidth(0.3);
 
-        // Línea izquierda — Arrendador
         const lineY = y + 12;
         doc.line(marginX, lineY, marginX + 70, lineY);
-        // Línea derecha — Inquilino
         doc.line(pageW - marginX - 70, lineY, pageW - marginX, lineY);
 
-        // Etiquetas debajo de las líneas
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(COLOR_PRIMARY);
@@ -324,7 +366,6 @@ const PDF_CONTRATO = (() => {
         doc.text(arrend.nombre_completo || '—',  marginX + 35, lineY + 10, { align: 'center' });
         doc.text(inqUser.nombre_completo || '—', pageW - marginX - 35, lineY + 10, { align: 'center' });
 
-        // Sello digital simulado encima de las líneas
         if (c.aceptado_en) {
             doc.setTextColor(COLOR_ACCENT);
             doc.setFont('helvetica', 'italic');

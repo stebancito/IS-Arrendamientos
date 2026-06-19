@@ -7,9 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../css/custom.css" />
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -32,7 +30,8 @@
             <div>
                 <h3 class="text-[#13243E] font-extrabold text-xl">Nuevo contrato de arrendamiento</h3>
                 <p class="text-[#6F88A1] text-sm mt-0.5 font-medium">
-                    Vincula a un inquilino con una propiedad. El contrato quedará en estado <span class="font-bold text-[#FFC533]">Pendiente de aceptación</span>.
+                    Vincula a un inquilino con una propiedad. El contrato quedará en estado
+                    <span class="font-bold text-[#FFC533]">Pendiente de aceptación</span>.
                 </p>
             </div>
             <a href="gestion-contratos.html"
@@ -48,8 +47,10 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+            <!-- ╔═══════════════ FORMULARIO (2/3) ═══════════════╗ -->
             <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 anim-fade-in-up anim-delay-1">
 
+                <!-- ── Paso 1: Inquilino ── -->
                 <section class="mb-8">
                     <div class="flex items-center gap-3 mb-3">
                         <span class="w-7 h-7 rounded-md bg-[#FFC533] text-[#13243E] text-sm font-extrabold flex items-center justify-center shadow-sm">1</span>
@@ -58,7 +59,6 @@
                     <p class="text-[#6F88A1] text-xs font-medium mb-4 ml-10">
                         Busca un inquilino ya registrado por su correo electrónico o número de teléfono.
                     </p>
-
                     <div class="ml-10">
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#6F88A1] text-sm"></i>
@@ -66,10 +66,7 @@
                                    placeholder="usuario@correo.com  ó  5512345678"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-medium outline-none transition-all" />
                         </div>
-
-                        <div id="resultados-busqueda" class="hidden mt-2 border border-slate-200 rounded-xl bg-white shadow-lg overflow-hidden">
-                            </div>
-
+                        <div id="resultados-busqueda" class="hidden mt-2 border border-slate-200 rounded-xl bg-white shadow-lg overflow-hidden"></div>
                         <div id="inquilino-seleccionado" class="hidden mt-3 p-4 rounded-xl bg-[#FFFBEB] border border-[#FFE788] shadow-sm">
                             <div class="flex items-center gap-4">
                                 <div id="inq-sel-avatar" class="w-11 h-11 rounded-xl bg-[#FFC533] text-[#13243E] flex items-center justify-center font-extrabold text-sm shadow-sm">U</div>
@@ -86,6 +83,7 @@
                     </div>
                 </section>
 
+                <!-- ── Paso 2: Propiedad ── -->
                 <section class="mb-8">
                     <div class="flex items-center gap-3 mb-3">
                         <span class="w-7 h-7 rounded-md bg-[#FFC533] text-[#13243E] text-sm font-extrabold flex items-center justify-center shadow-sm">2</span>
@@ -94,7 +92,6 @@
                     <p class="text-[#6F88A1] text-xs font-medium mb-4 ml-10">
                         Solo se listan unidades disponibles (sin contrato activo o pendiente).
                     </p>
-
                     <div class="ml-10">
                         <select id="propiedad-id"
                                 class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-bold outline-none transition-all">
@@ -104,20 +101,18 @@
                     </div>
                 </section>
 
+                <!-- ── Paso 3: Condiciones ── -->
                 <section class="mb-8">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="w-7 h-7 rounded-md bg-[#FFC533] text-[#13243E] text-sm font-extrabold flex items-center justify-center shadow-sm">3</span>
                         <h4 class="text-[#13243E] font-bold text-base">Condiciones del contrato</h4>
                     </div>
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 ml-0 sm:ml-10">
-
                         <div>
                             <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">Fecha de inicio *</label>
                             <input id="fecha-inicio" type="date"
                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-semibold outline-none transition-all" />
                         </div>
-
                         <div>
                             <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">Fecha de término *</label>
                             <input id="fecha-fin" type="date"
@@ -126,20 +121,17 @@
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i> Debe ser posterior a la de inicio.
                             </p>
                         </div>
-
                         <div>
                             <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">Monto de renta *</label>
                             <div class="relative">
                                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#6F88A1] font-bold text-sm">$</span>
-                                <input id="monto-renta" type="number" min="1" step="0.01"
-                                       placeholder="8500.00"
+                                <input id="monto-renta" type="number" min="1" step="0.01" placeholder="8500.00"
                                        class="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-bold outline-none transition-all" />
                             </div>
                             <p id="monto-error" class="hidden text-red-500 text-[10px] font-bold mt-1.5 uppercase tracking-wide">
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i> El monto debe ser mayor a cero.
                             </p>
                         </div>
-
                         <div>
                             <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">Frecuencia de pago *</label>
                             <select id="frecuencia-pago"
@@ -152,28 +144,29 @@
                     </div>
                 </section>
 
-                <section class="mb-4">
+                <!-- ── Paso 4: Beneficios y observaciones ── -->
+                <section class="mb-8">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="w-7 h-7 rounded-md bg-[#FFC533] text-[#13243E] text-sm font-extrabold flex items-center justify-center shadow-sm">4</span>
                         <h4 class="text-[#13243E] font-bold text-base">Beneficios y observaciones</h4>
                     </div>
 
-                    <div class="ml-0 sm:ml-10 space-y-5">
-                        <div class="mt-4 pt-5 border-t border-slate-100" id="beneficios-checkboxes">
+                    <div class="ml-0 sm:ml-10 space-y-6">
+
+                        <!-- Sub-sección: Beneficios del inmueble (sin cambios) -->
+                        <div>
                             <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-3">Beneficios del inmueble</label>
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-
                                 <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
                                     <input type="checkbox" name="beneficios" value="estacionamiento" class="sr-only" />
                                     <div class="flex flex-col items-center text-center gap-2">
                                         <i class="fa-solid fa-square-parking text-2xl mb-1"></i>
                                         <span class="text-[10px] font-bold uppercase tracking-widest">Estacionamiento</span>
                                     </div>
-                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center opacity-0 transition-opacity [[data-checked=true]]:opacity-100 hidden has-[:checked]:flex">
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
                                         <i class="fa-solid fa-check text-[9px]"></i>
                                     </div>
                                 </label>
-
                                 <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
                                     <input type="checkbox" name="beneficios" value="gimnasio" class="sr-only" />
                                     <div class="flex flex-col items-center text-center gap-2">
@@ -184,7 +177,6 @@
                                         <i class="fa-solid fa-check text-[9px]"></i>
                                     </div>
                                 </label>
-
                                 <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
                                     <input type="checkbox" name="beneficios" value="area_social" class="sr-only" />
                                     <div class="flex flex-col items-center text-center gap-2">
@@ -195,7 +187,6 @@
                                         <i class="fa-solid fa-check text-[9px]"></i>
                                     </div>
                                 </label>
-
                                 <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
                                     <input type="checkbox" name="beneficios" value="jardin" class="sr-only" />
                                     <div class="flex flex-col items-center text-center gap-2">
@@ -206,7 +197,6 @@
                                         <i class="fa-solid fa-check text-[9px]"></i>
                                     </div>
                                 </label>
-
                                 <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
                                     <input type="checkbox" name="beneficios" value="mascotas" class="sr-only" />
                                     <div class="flex flex-col items-center text-center gap-2">
@@ -217,11 +207,61 @@
                                         <i class="fa-solid fa-check text-[9px]"></i>
                                     </div>
                                 </label>
-
                             </div>
                         </div>
 
-                        <div>
+                        <!-- Sub-sección: Servicios incluidos (rama anterior, sin cambios) -->
+                        <div class="pt-5 border-t border-slate-100">
+                            <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-3">Servicios incluidos</label>
+                            <p class="text-[#6F88A1] text-xs font-medium mb-3">
+                                Indica los servicios que el arrendador cubre dentro del contrato.
+                            </p>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="servicios" value="agua" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-droplet text-2xl mb-1"></i>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest">Agua</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="servicios" value="luz" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-bolt text-2xl mb-1"></i>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest">Luz</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="servicios" value="internet" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-wifi text-2xl mb-1"></i>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest">Internet</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+                                <label class="relative flex flex-col p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="servicios" value="gas" class="sr-only" />
+                                    <div class="flex flex-col items-center text-center gap-2">
+                                        <i class="fa-solid fa-fire-flame-curved text-2xl mb-1"></i>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest">Gas</span>
+                                    </div>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="pt-5 border-t border-slate-100">
                             <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-1.5">Observaciones</label>
                             <textarea id="observaciones" rows="3" maxlength="1000"
                                       placeholder="Cláusulas adicionales, condiciones especiales…"
@@ -229,6 +269,110 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- ── Paso 5: Cláusulas del contrato (NUEVO) ── -->
+                <section class="mb-4">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="w-7 h-7 rounded-md bg-[#FFC533] text-[#13243E] text-sm font-extrabold flex items-center justify-center shadow-sm">5</span>
+                        <h4 class="text-[#13243E] font-bold text-base">Cláusulas del contrato</h4>
+                    </div>
+
+                    <div class="ml-0 sm:ml-10 space-y-6">
+
+                        <!-- Sub-sección: Cláusulas predefinidas -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-3">
+                                Cláusulas predefinidas
+                            </label>
+                            <p class="text-[#6F88A1] text-xs font-medium mb-3">
+                                Selecciona las cláusulas que aplicarán al contrato.
+                            </p>
+                            <!--
+                                name="clausulas-pre" / value="clpre:<clave>"
+                                Mismo componente visual que beneficios e inmueble/servicios.
+                                Se usan iconos representativos para cada restricción.
+                            -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                                <!-- No mascotas -->
+                                <label class="relative flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="clausulas-pre" value="clpre:no_mascotas" class="sr-only" />
+                                    <i class="fa-solid fa-paw text-xl flex-shrink-0"></i>
+                                    <span class="text-xs font-bold leading-snug">No se permiten mascotas</span>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+
+                                <!-- No subarrendar -->
+                                <label class="relative flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="clausulas-pre" value="clpre:no_subarrendar" class="sr-only" />
+                                    <i class="fa-solid fa-ban text-xl flex-shrink-0"></i>
+                                    <span class="text-xs font-bold leading-snug">No subarrendar</span>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+
+                                <!-- No modificar propiedad -->
+                                <label class="relative flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="clausulas-pre" value="clpre:no_modificar" class="sr-only" />
+                                    <i class="fa-solid fa-screwdriver-wrench text-xl flex-shrink-0"></i>
+                                    <span class="text-xs font-bold leading-snug">Prohibido modificar la propiedad</span>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+
+                                <!-- Pago por transferencia -->
+                                <label class="relative flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 bg-white cursor-pointer select-none transition-all hover:border-slate-200 has-[:checked]:border-[#FFC533] has-[:checked]:bg-[#FFFBEB] text-[#6F88A1] has-[:checked]:text-[#13243E] shadow-sm">
+                                    <input type="checkbox" name="clausulas-pre" value="clpre:solo_transferencia" class="sr-only" />
+                                    <i class="fa-solid fa-building-columns text-xl flex-shrink-0"></i>
+                                    <span class="text-xs font-bold leading-snug">Pago únicamente por transferencia</span>
+                                    <div class="absolute top-2 right-2 w-4 h-4 rounded-full border-2 border-[#13243E] bg-[#13243E] text-[#FFC533] flex items-center justify-center hidden has-[:checked]:flex">
+                                        <i class="fa-solid fa-check text-[9px]"></i>
+                                    </div>
+                                </label>
+
+                            </div>
+                        </div>
+
+                        <!-- Sub-sección: Cláusulas personalizadas -->
+                        <div class="pt-5 border-t border-slate-100">
+                            <label class="block text-[10px] font-bold text-[#6F88A1] uppercase tracking-wider mb-3">
+                                Agregar cláusula personalizada
+                            </label>
+                            <p class="text-[#6F88A1] text-xs font-medium mb-3">
+                                Escribe cualquier condición adicional y agrégala al contrato.
+                            </p>
+
+                            <!-- Input + botón Agregar -->
+                            <div class="flex gap-2">
+                                <input id="clausula-custom-input" type="text" maxlength="300"
+                                       placeholder="Ej. Máximo 3 ocupantes"
+                                       class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-[#F5F7F9] focus:bg-white focus:border-[#FFC533] focus:ring-2 focus:ring-[#FFC533]/20 text-sm text-[#13243E] font-medium outline-none transition-all" />
+                                <button type="button" id="btn-agregar-clausula"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl
+                                               bg-[#13243E] hover:bg-slate-800 text-white text-xs font-bold
+                                               transition-colors shadow-sm flex-shrink-0">
+                                    <i class="fa-solid fa-plus text-[10px]"></i>
+                                    Agregar
+                                </button>
+                            </div>
+                            <p id="clausula-error" class="hidden text-red-500 text-[10px] font-bold mt-1.5">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                Escribe la cláusula antes de agregar.
+                            </p>
+
+                            <!-- Lista de cláusulas personalizadas agregadas -->
+                            <div id="clausulas-custom-lista" class="hidden mt-4 space-y-2">
+                                <!-- Renderizado dinámico por nuevo-contrato.js -->
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+                <!-- FIN: Cláusulas del contrato -->
 
                 <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-6 border-t border-slate-100">
                     <a href="gestion-contratos.html"
@@ -244,6 +388,7 @@
                 </div>
             </div>
 
+            <!-- ╔═══════════════ PANEL LATERAL (1/3) ═══════════════╗ -->
             <aside class="lg:col-span-1 anim-fade-in-up anim-delay-2">
                 <div class="sticky top-24 space-y-4">
 
@@ -276,6 +421,26 @@
                             </div>
                         </div>
 
+                        <!-- Servicios (rama anterior) -->
+                        <div class="mt-4 pt-4 border-t border-slate-700/50">
+                            <p class="text-[#6F88A1] font-bold uppercase tracking-wider text-[10px] mb-1.5">
+                                Servicios incluidos
+                            </p>
+                            <p id="pv-servicios" class="text-white text-xs font-medium leading-relaxed">
+                                No especificados
+                            </p>
+                        </div>
+
+                        <!-- Cláusulas (NUEVO) -->
+                        <div class="mt-4 pt-4 border-t border-slate-700/50">
+                            <p class="text-[#6F88A1] font-bold uppercase tracking-wider text-[10px] mb-1.5">
+                                Cláusulas
+                            </p>
+                            <p id="pv-clausulas" class="text-white text-xs font-medium leading-relaxed">
+                                No especificadas
+                            </p>
+                        </div>
+
                         <div class="mt-6 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFFBEB] text-[#13243E] text-[10px] font-extrabold uppercase tracking-widest border border-[#FFE788] shadow-sm">
                             <span class="w-1.5 h-1.5 rounded-full bg-[#FFC533] animate-pulse shadow-sm shadow-[#FFC533]"></span>
                             Pendiente
@@ -296,6 +461,7 @@
             </aside>
         </div>
     </div>
+
     <script src="../js/supabase-config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/components/layout.js"></script>
